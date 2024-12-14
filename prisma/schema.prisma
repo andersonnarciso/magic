@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Fund {
+  id            String   @id @default(cuid())
+  ticker        String   @unique
+  name          String
+  currentPrice  Float?
+  lastDividend  Float?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@index([ticker])
+}
