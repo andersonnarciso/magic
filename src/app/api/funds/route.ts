@@ -1,41 +1,63 @@
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const pageSize = 20
-    const skip = (page - 1) * pageSize
+    const searchParams = request.nextUrl.searchParams
+    const page = Number(searchParams.get('page')) || 1
+    const perPage = Math.min(Number(searchParams.get('perPage')) || 8, 52)
+    const search = searchParams.get('search') || ''
 
-    // Get paginated funds
+    console.log('Searching funds with params:', { page, perPage, search })
+
+    const skip = (page - 1) * perPage
+
+    const where = search ? {
+      OR: [
+        { ticker: { contains: search.toUpperCase() } },
+        { name: { contains: search, mode: 'insensitive' } }
+      ]
+    } : {}
+
+    console.log('Database query params:', { where, skip, take: perPage })
+
     const [funds, totalFunds] = await Promise.all([
       prisma.fund.findMany({
+        where,
         skip,
-        take: pageSize,
+        take: perPage,
         orderBy: { ticker: 'asc' }
       }),
-      prisma.fund.count()
+      prisma.fund.count({ where })
     ])
 
-    // If no funds, fetch from API
+    console.log(`Found ${funds.length} funds out of ${totalFunds} total`)
+
+    // Se não houver fundos, buscar da API
     if (totalFunds === 0) {
+      console.log('No funds found in database, fetching from API...')
+      
       const BRAPI_TOKEN = process.env.BRAPI_TOKEN
       const response = await fetch(
         `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
       )
 
       if (!response.ok) {
+        console.error('API request failed:', response.status, response.statusText)
         throw new Error('Failed to fetch funds list')
       }
 
       const data = await response.json()
       const fiiList = data.stocks.filter((stock: any) => stock.stock.endsWith('11'))
 
-      // Insert funds in batches
+      console.log(`Found ${fiiList.length} FIIs from API`)
+
+      // Inserir fundos em lotes
       const batchSize = 50
       for (let i = 0; i < fiiList.length; i += batchSize) {
         const batch = fiiList.slice(i, i + batchSize)
+        console.log(`Inserting batch ${i/batchSize + 1} of ${Math.ceil(fiiList.length/batchSize)}`)
+        
         await prisma.fund.createMany({
           data: batch.map((fund: any) => ({
             ticker: fund.stock,
@@ -47,86 +69,39 @@ export async function GET(request: Request) {
         })
       }
 
-      // Get funds again after inserting
+      console.log('All funds inserted, fetching updated list...')
+
+      // Buscar fundos novamente após inserção
       const [newFunds, newTotalFunds] = await Promise.all([
         prisma.fund.findMany({
+          where,
           skip,
-          take: pageSize,
+          take: perPage,
           orderBy: { ticker: 'asc' }
         }),
-        prisma.fund.count()
+        prisma.fund.count({ where })
       ])
+
+      console.log(`Returning ${newFunds.length} funds out of ${newTotalFunds} total after API fetch`)
 
       return NextResponse.json({
         funds: newFunds,
         totalFunds: newTotalFunds,
-        totalPages: Math.ceil(newTotalFunds / pageSize)
-      })
-    }
-
-    // Check if we need to update all funds (older than 8 minutes)
-    const oldestFund = await prisma.fund.findFirst({
-      orderBy: { updatedAt: 'asc' }
-    })
-
-    const needsUpdate = !oldestFund?.updatedAt || 
-      new Date().getTime() - oldestFund.updatedAt.getTime() > 8 * 60 * 1000
-
-    if (needsUpdate) {
-      const BRAPI_TOKEN = process.env.BRAPI_TOKEN
-      const response = await fetch(
-        `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch funds list')
-      }
-
-      const data = await response.json()
-      const fiiList = data.stocks.filter((stock: any) => stock.stock.endsWith('11'))
-
-      // Update funds in batches
-      const batchSize = 50
-      for (let i = 0; i < fiiList.length; i += batchSize) {
-        const batch = fiiList.slice(i, i + batchSize)
-        await Promise.all(
-          batch.map((fund: any) =>
-            prisma.fund.update({
-              where: { ticker: fund.stock },
-              data: {
-                currentPrice: fund.close || 0,
-                updatedAt: new Date()
-              }
-            }).catch(() => null) // Ignore errors for individual updates
-          )
-        )
-      }
-
-      // Get updated funds
-      const [updatedFunds, newTotalFunds] = await Promise.all([
-        prisma.fund.findMany({
-          skip,
-          take: pageSize,
-          orderBy: { ticker: 'asc' }
-        }),
-        prisma.fund.count()
-      ])
-
-      return NextResponse.json({
-        funds: updatedFunds,
-        totalFunds: newTotalFunds,
-        totalPages: Math.ceil(newTotalFunds / pageSize)
+        page,
+        perPage,
+        totalPages: Math.ceil(newTotalFunds / perPage)
       })
     }
 
     return NextResponse.json({
       funds,
       totalFunds,
-      totalPages: Math.ceil(totalFunds / pageSize)
+      page,
+      perPage,
+      totalPages: Math.ceil(totalFunds / perPage)
     })
-
   } catch (error) {
-    console.error('Error in funds API:', error)
+    console.error('Error fetching funds:', error)
     return NextResponse.json(
       { error: 'Failed to fetch funds' },
       { status: 500 }

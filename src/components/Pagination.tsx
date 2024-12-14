@@ -6,9 +6,10 @@ interface PaginationProps {
   currentPage: number
   totalPages: number
   totalItems: number
+  onPageChange: (page: number) => void
 }
 
-export default function Pagination({ currentPage, totalPages, totalItems }: PaginationProps) {
+export default function Pagination({ currentPage, totalPages, totalItems, onPageChange }: PaginationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -16,6 +17,27 @@ export default function Pagination({ currentPage, totalPages, totalItems }: Pagi
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())
     router.push(`/?${params.toString()}`)
+  }
+
+  // Função para gerar o array de páginas a serem mostradas
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxVisiblePages = 5
+    const halfVisible = Math.floor(maxVisiblePages / 2)
+
+    let startPage = Math.max(1, currentPage - halfVisible)
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+    // Ajusta o startPage se estiver próximo do final
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i)
+    }
+
+    return pageNumbers
   }
 
   return (
@@ -26,7 +48,7 @@ export default function Pagination({ currentPage, totalPages, totalItems }: Pagi
       
       <div className="flex space-x-2">
         <button
-          onClick={() => handlePageChange(currentPage - 1)}
+          onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
           className={`px-4 py-2 rounded-md ${
             currentPage <= 1
@@ -38,27 +60,47 @@ export default function Pagination({ currentPage, totalPages, totalItems }: Pagi
         </button>
         
         <div className="flex items-center space-x-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pageNum = i + 1
-            return (
+          {currentPage > 3 && (
+            <>
               <button
-                key={pageNum}
-                onClick={() => handlePageChange(pageNum)}
-                className={`px-4 py-2 rounded-md ${
-                  currentPage === pageNum
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                onClick={() => onPageChange(1)}
+                className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
               >
-                {pageNum}
+                1
               </button>
-            )
-          })}
-          {totalPages > 5 && <span className="px-2">...</span>}
+              <span className="px-2">...</span>
+            </>
+          )}
+
+          {getPageNumbers().map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => onPageChange(pageNum)}
+              className={`px-4 py-2 rounded-md ${
+                currentPage === pageNum
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          {currentPage < totalPages - 2 && (
+            <>
+              <span className="px-2">...</span>
+              <button
+                onClick={() => onPageChange(totalPages)}
+                className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
         </div>
 
         <button
-          onClick={() => handlePageChange(currentPage + 1)}
+          onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
           className={`px-4 py-2 rounded-md ${
             currentPage >= totalPages

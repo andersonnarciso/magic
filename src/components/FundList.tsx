@@ -5,6 +5,8 @@ import FundCard from './FundCard'
 import FundModal from './FundModal'
 import Pagination from './Pagination'
 import { Fund } from '@prisma/client'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface FundListProps {
   page: number
@@ -18,11 +20,20 @@ export default function FundList({ page }: FundListProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [initialLoad, setInitialLoad] = useState(true)
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function loadFunds() {
       try {
-        const response = await fetch(`/api/funds?page=${page}`)
+        const params = new URLSearchParams(searchParams.toString())
+        const perPage = params.get('perPage') || '8'
+        const currentSearch = params.get('search') || ''
+        
+        const response = await fetch(
+          `/api/funds?page=${page}&perPage=${perPage}${currentSearch ? `&search=${currentSearch}` : ''}`
+        )
+        
         if (!response.ok) {
           throw new Error('Failed to fetch funds')
         }
@@ -30,62 +41,69 @@ export default function FundList({ page }: FundListProps) {
         setFunds(data.funds)
         setTotalFunds(data.totalFunds)
         setTotalPages(data.totalPages)
-        setInitialLoad(false)
       } catch (err) {
+        setError('Failed to load funds')
         console.error('Error loading funds:', err)
-        setError('Erro ao carregar os fundos')
       } finally {
         setLoading(false)
+        setInitialLoad(false)
       }
     }
 
     loadFunds()
-  }, [page])
+  }, [page, searchParams])
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', newPage.toString())
+    router.push(`/?${params.toString()}`)
+  }
+
+  const handleFundClick = async (fund: Fund) => {
+    try {
+      const response = await fetch(`/api/funds/${fund.ticker}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch fund details')
+      }
+      const updatedFund = await response.json()
+      
+      setFunds(currentFunds => 
+        currentFunds.map(f => 
+          f.ticker === updatedFund.ticker ? updatedFund : f
+        )
+      )
+      
+      setSelectedFund(updatedFund)
+    } catch (err) {
+      console.error('Error fetching fund details:', err)
+      setSelectedFund(fund)
+    }
+  }
 
   if (error) {
-    return (
-      <div className="text-center text-red-600 p-4 bg-red-50 rounded-lg">
-        {error}
-      </div>
-    )
+    return <div className="text-red-500 text-center p-4">{error}</div>
   }
 
   if (loading && initialLoad) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="text-gray-600">Carregando fundos pela primeira vez...</p>
-        <p className="text-sm text-gray-500">Isso pode levar alguns segundos</p>
-      </div>
-    )
-  }
-
-  if (!funds.length) {
-    return (
-      <div className="text-center p-4">
-        <p className="text-gray-600">Nenhum fundo encontrado.</p>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {loading && !initialLoad && (
-        <div className="fixed top-4 right-4 bg-blue-100 text-blue-700 px-4 py-2 rounded-full shadow-lg">
-          Atualizando...
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {funds.map((fund) => (
           <FundCard
             key={fund.ticker}
             fund={fund}
-            onClick={(fund) => setSelectedFund(fund)}
+            onClick={() => handleFundClick(fund)}
           />
         ))}
       </div>
-
+      
       {selectedFund && (
         <FundModal
           fund={selectedFund}
@@ -93,11 +111,14 @@ export default function FundList({ page }: FundListProps) {
         />
       )}
 
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        totalItems={totalFunds}
-      />
+      <div className="mt-8">
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalFunds}
+          onPageChange={handlePageChange}
+        />
+      </div>
     </div>
   )
 }
