@@ -5,107 +5,81 @@ import { useRouter, useSearchParams } from 'next/navigation'
 interface PaginationProps {
   currentPage: number
   totalPages: number
-  totalItems: number
   onPageChange: (page: number) => void
+  totalItems: number
 }
 
-export default function Pagination({ currentPage, totalPages, totalItems, onPageChange }: PaginationProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('page', page.toString())
-    router.push(`/?${params.toString()}`)
-  }
-
-  // Função para gerar o array de páginas a serem mostradas
+export default function Pagination({ currentPage, totalPages, onPageChange, totalItems }: PaginationProps) {
   const getPageNumbers = () => {
-    const pageNumbers = []
-    const maxVisiblePages = 5
-    const halfVisible = Math.floor(maxVisiblePages / 2)
+    const delta = 2; // Número de páginas para mostrar antes e depois da página atual
+    const range = [];
+    const rangeWithDots = [];
+    let l;
 
-    let startPage = Math.max(1, currentPage - halfVisible)
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-
-    // Ajusta o startPage se estiver próximo do final
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      }
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i)
-    }
+    range.forEach(i => {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    });
 
-    return pageNumbers
-  }
+    return rangeWithDots;
+  };
 
   return (
     <div className="flex flex-col items-center space-y-2">
-      <div className="text-sm text-gray-600">
-        Mostrando {Math.min(20, totalItems)} de {totalItems} fundos
-      </div>
-      
-      <div className="flex space-x-2">
+      <p className="text-sm text-gray-700">
+        Mostrando <span className="font-medium">{totalItems}</span> fundos
+      </p>
+      <div className="flex justify-center space-x-1">
         <button
           onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-          className={`px-4 py-2 rounded-md ${
-            currentPage <= 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === 1
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-700 hover:bg-gray-100'
           }`}
         >
           Anterior
         </button>
-        
-        <div className="flex items-center space-x-1">
-          {currentPage > 3 && (
-            <>
-              <button
-                onClick={() => onPageChange(1)}
-                className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
-                1
-              </button>
-              <span className="px-2">...</span>
-            </>
-          )}
 
-          {getPageNumbers().map((pageNum) => (
+        {getPageNumbers().map((page, index) => (
+          page === '...' ? (
+            <span key={`dots-${index}`} className="px-3 py-1">...</span>
+          ) : (
             <button
-              key={pageNum}
-              onClick={() => onPageChange(pageNum)}
-              className={`px-4 py-2 rounded-md ${
-                currentPage === pageNum
+              key={page}
+              onClick={() => onPageChange(Number(page))}
+              className={`px-3 py-1 rounded-md ${
+                currentPage === page
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              {pageNum}
+              {page}
             </button>
-          ))}
-
-          {currentPage < totalPages - 2 && (
-            <>
-              <span className="px-2">...</span>
-              <button
-                onClick={() => onPageChange(totalPages)}
-                className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
-                {totalPages}
-              </button>
-            </>
-          )}
-        </div>
+          )
+        ))}
 
         <button
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          className={`px-4 py-2 rounded-md ${
-            currentPage >= totalPages
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === totalPages
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-700 hover:bg-gray-100'
           }`}
         >
           Próxima

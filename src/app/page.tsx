@@ -13,7 +13,7 @@ export default function Home({ searchParams }: HomeProps) {
   const searchParamsObj = useSearchParams()
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-[1800px] mx-auto px-6 space-y-8">
       {/* Hero Section */}
       <header className="text-center max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -85,14 +85,23 @@ export default function Home({ searchParams }: HomeProps) {
                 <option value="32">32 por página</option>
                 <option value="52">52 por página</option>
               </select>
-              <select className="input max-w-xs">
-                <option value="">Ordenar por</option>
-                <option value="price">Preço</option>
-                <option value="dividend">Dividendo</option>
+              <select 
+                className="input max-w-xs"
+                value={searchParamsObj?.get('orderBy') || 'dividendYield'}
+                onChange={(e) => {
+                  const params = new URLSearchParams(searchParamsObj?.toString())
+                  params.set('orderBy', e.target.value)
+                  params.set('page', '1')
+                  router.push(`/?${params.toString()}`)
+                }}
+              >
+                <option value="dividendYield">Maiores Dividend Yield</option>
+                <option value="marketValue">Maiores Valor de Mercado</option>
+                <option value="pvp">Menor P/VP</option>
               </select>
             </div>
           </div>
-          <FundList page={page} />
+          <FundList initialFunds={[]} />
         </div>
       </main>
     </div>
