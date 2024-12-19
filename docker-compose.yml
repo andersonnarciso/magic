@@ -1,34 +1,22 @@
+version: '3'
+
 services:
   app:
     build: .
     ports:
       - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/efeito_bola_neve?schema=public
       - BRAPI_TOKEN=${BRAPI_TOKEN}
-      - NODE_ENV=development
+      - NODE_ENV=production
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   db:
     image: postgres:14
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: efeito_bola_neve
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=efeito_bola_neve
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:

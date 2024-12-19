@@ -51,7 +51,7 @@ export default function MagicNumberCalculator({ fund }: MagicNumberCalculatorPro
         
         <div className="flex justify-between">
           <span className="text-gray-600">Rendimento Mensal:</span>
-          <span className="font-medium">{formatCurrency(fund.lastDividend * magicNumber)}</span>
+          <span className="font-medium">{formatCurrency((fund.lastDividend || 0) * magicNumber)}</span>
         </div>
       </div>
 

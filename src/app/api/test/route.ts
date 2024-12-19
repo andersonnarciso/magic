@@ -33,7 +33,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json({ 
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       type: 'Erro ao processar a requisição'
     }, { status: 500 })
   }

@@ -1,43 +1,31 @@
-# Use a imagem oficial do Node.js como base
-FROM node:20-alpine
+# Build stage
+FROM node:20 AS builder
 
-# Instala dependências necessárias
-RUN apk add --no-cache \
-    libc6-compat \
-    openssl \
-    openssl-dev \
-    postgresql-client \
-    netcat-openbsd
-
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Instala o pnpm globalmente
-RUN npm install -g pnpm
+COPY package*.json ./
+RUN npm install
 
-# Copia os arquivos de configuração do projeto
-COPY package.json ./
-COPY pnpm-lock.yaml* ./
-COPY tsconfig.json ./
-COPY next.config.js ./
-COPY .env ./
-COPY prisma ./prisma/
-
-# Instala as dependências
-RUN pnpm install
-
-# Gera o cliente Prisma
-RUN pnpm prisma generate
-
-# Copia o resto dos arquivos do projeto
 COPY . .
+RUN npx prisma generate
+RUN npm run build
 
-# Torna o script de entrada executável
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Production stage
+FROM node:20-slim
 
-# Expõe a porta 3000
+WORKDIR /app
+
+RUN apt-get update -y && apt-get install -y openssl
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
 EXPOSE 3000
 
-# Define o script de entrada como ponto de entrada
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]

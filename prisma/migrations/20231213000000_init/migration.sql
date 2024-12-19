@@ -5,6 +5,7 @@ CREATE TABLE "Fund" (
     "name" TEXT NOT NULL,
     "currentPrice" DOUBLE PRECISION,
     "lastDividend" DOUBLE PRECISION,
+    "lastDividendDate" TIMESTAMP(3),
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

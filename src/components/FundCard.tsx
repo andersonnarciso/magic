@@ -41,6 +41,45 @@ export default function FundCard({ fund, onClick }: FundCardProps) {
     return `${Math.floor(minutes / 1440)}d atrás`
   }
 
+  // Formata a data do último dividendo
+  const formatDividendDate = () => {
+    if (!fund.lastDividendDate) return 'N/A'
+    const date = new Date(fund.lastDividendDate)
+    return new Intl.DateTimeFormat('pt-BR', { 
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(date)
+  }
+
+  // Formata valores monetários
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null) return 'N/A'
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
+
+  // Calcula o dividend yield mensal
+  const calculateMonthlyYield = () => {
+    if (!fund.lastDividend || !fund.currentPrice || fund.currentPrice <= 0) {
+      return 'N/A'
+    }
+    const dividendYield = (fund.lastDividend / fund.currentPrice) * 100
+    return `${dividendYield.toFixed(2)}%`
+  }
+
+  const dividendYield = fund.lastDividend && fund.currentPrice 
+    ? ((fund.lastDividend * 12) / fund.currentPrice) * 100 
+    : 0
+
+  const formattedDividendYield = dividendYield.toFixed(2)
+  const formattedLastDividend = fund.lastDividend?.toFixed(2) || '0.00'
+  const formattedLastDividendDate = fund.lastDividendDate 
+    ? new Date(fund.lastDividendDate).toLocaleDateString('pt-BR')
+    : 'N/A'
+
   return (
     <div 
       onClick={handleClick}
@@ -72,13 +111,16 @@ export default function FundCard({ fund, onClick }: FundCardProps) {
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500 mb-1">Preço Atual</p>
           <p className="font-semibold text-gray-900">
-            R$ {fund.currentPrice?.toFixed(2) ?? 'N/A'}
+            {formatCurrency(fund.currentPrice)}
           </p>
         </div>
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500 mb-1">Último Dividendo</p>
           <p className="font-semibold text-gray-900">
-            R$ {fund.lastDividend?.toFixed(2) ?? 'N/A'}
+            {formatCurrency(fund.lastDividend)}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {formatDividendDate()}
           </p>
         </div>
       </div>
@@ -86,11 +128,27 @@ export default function FundCard({ fund, onClick }: FundCardProps) {
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex justify-between items-center">
           <span className="text-xs text-gray-500">
-            Rendimento Mensal
+            Dividend Yield Mensal
           </span>
-          <span className="text-sm font-semibold text-green-600">
-            {((fund.lastDividend || 0) / (fund.currentPrice || 1) * 100).toFixed(2)}%
+          <span className={`text-sm font-semibold ${
+            fund.lastDividend && fund.currentPrice 
+              ? 'text-green-600' 
+              : 'text-gray-500'
+          }`}>
+            {calculateMonthlyYield()}
           </span>
+        </div>
+      </div>
+
+      <div className="mt-4 flex justify-between items-center">
+        <div>
+          <p className="text-sm text-gray-500">Último Dividendo</p>
+          <p className="font-semibold">R$ {formattedLastDividend}</p>
+          <p className="text-xs text-gray-400">{formattedLastDividendDate}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-500">Dividend Yield (Anual)</p>
+          <p className="font-semibold">{formattedDividendYield}%</p>
         </div>
       </div>
     </div>
