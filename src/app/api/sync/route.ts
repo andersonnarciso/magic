@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { getLastDividendFromInvestidor10 } from '@/services/scraping'
 
 export async function GET() {
   try {
@@ -21,25 +22,43 @@ export async function GET() {
     const fiiWithDividends = await Promise.all(
       fiiList.map(async (fund: any) => {
         try {
+          // Primeiro tenta buscar da API BRAPI
           const dividendResponse = await fetch(
             `https://brapi.dev/api/quote/${fund.stock}/dividends?token=${BRAPI_TOKEN}`
           )
           
-          if (!dividendResponse.ok) {
-            console.warn(`Failed to fetch dividends for ${fund.stock}:`, dividendResponse.status)
-            return fund
+          if (dividendResponse.ok) {
+            const dividendData = await dividendResponse.json()
+            const dividends = dividendData.dividends || []
+            const lastDividend = dividends[0]?.value || 0
+            const lastDividendDate = dividends[0]?.paymentDate ? new Date(dividends[0].paymentDate) : null
+
+            if (lastDividend > 0) {
+              console.log(`Found dividend for ${fund.stock} from BRAPI: ${lastDividend}`)
+              return {
+                ...fund,
+                lastDividend,
+                lastDividendDate
+              }
+            }
           }
 
-          const dividendData = await dividendResponse.json()
-          const dividends = dividendData.dividends || []
-          const lastDividend = dividends[0]?.value || 0
-          const lastDividendDate = dividends[0]?.paymentDate ? new Date(dividends[0].paymentDate) : null
-
-          return {
-            ...fund,
-            lastDividend,
-            lastDividendDate
+          // Se não encontrou na BRAPI, tenta buscar do Investidor10
+          console.log(`Trying Investidor10 for ${fund.stock}...`)
+          const investidor10Data = await getLastDividendFromInvestidor10(fund.stock)
+          
+          if (investidor10Data.value) {
+            console.log(`Found dividend for ${fund.stock} from Investidor10: ${investidor10Data.value}`)
+            return {
+              ...fund,
+              lastDividend: investidor10Data.value,
+              lastDividendDate: investidor10Data.date
+            }
           }
+
+          console.warn(`No dividend found for ${fund.stock} in any source`)
+          return fund
+
         } catch (error) {
           console.warn(`Error fetching dividends for ${fund.stock}:`, error)
           return fund
