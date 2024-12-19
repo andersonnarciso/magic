@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { cn } from '../lib/utils'
+import { TooltipProvider } from '../components/ui/tooltip'
 import './globals.css'
+import { Header } from '@/components/Header'
 import Footer from '@/components/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Efeito Bola de Neve - Calculadora de FIIs',
-  description: 'Encontre os melhores Fundos de Investimento Imobiliário para sua estratégia de Bola de Neve',
+  title: 'Ferramentas FII',
+  description: 'Ferramentas para análise de Fundos de Investimento Imobiliário',
 }
 
 export default function RootLayout({
@@ -17,15 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={inter.className}>
-        <div className="min-h-screen flex flex-col bg-gray-50">
-          <div className="container-custom">
-            <main className="flex-grow py-8">
-              {children}
-            </main>
-          </div>
-          <Footer />
-        </div>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
+        <Header />
+        <TooltipProvider>
+          <main className="flex-1">
+            {children}
+          </main>
+        </TooltipProvider>
+        <Footer />
       </body>
     </html>
   )

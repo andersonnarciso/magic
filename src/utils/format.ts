@@ -1,12 +1,16 @@
-export const formatCurrency = (value: number | null | undefined) => {
-  if (value == null) return '-'
+export function formatCurrency(value: number | null | undefined): string {
+  if (!value) return '-';
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
-  }).format(value)
+  }).format(value);
 }
 
-export const formatPercent = (value: number | null | undefined) => {
-  if (value == null) return '-'
-  return value === 0 ? '0,00%' : `${(value * 100).toFixed(2)}%`
+export function formatPercent(value: number | null | undefined): string {
+  if (!value) return '-';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value / 100);
 }

@@ -36,7 +36,7 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
 
   const formatDY = (value: number | null) => {
     if (value == null) return '-'
-    return value === 0 ? '0,00%' : `${(value * 100).toFixed(2)}%`
+    return value === 0 ? '0,00%' : `${value.toFixed(2)}%`
   }
 
   const LoadingSkeleton = () => (
@@ -111,18 +111,15 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
 
         {/* Content */}
         <div className="p-4 space-y-4 relative">
-          <div className={isLoading ? 'opacity-20' : ''}>
-            <LoadingSkeleton />
-          </div>
-
-          {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80">
-              <div className="text-lg font-semibold text-gray-600 mb-4">{loadingState}</div>
-              <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-
-          {!isLoading && (
+          {isLoading ? (
+            <>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80">
+                <div className="text-lg font-semibold text-gray-600 mb-4">{loadingState}</div>
+                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <LoadingSkeleton />
+            </>
+          ) : (
             <>
               {/* Informações principais */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -184,15 +181,13 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
                     return (
                       <div key={value} className="bg-white p-3 rounded-lg text-center">
                         <p className="text-sm text-gray-600 mb-2">
-                          Para receber
-                          <br />
-                          <span className="font-bold">{formatCurrency(value)}</span> por mês
+                          Para receber {formatCurrency(value)} por mês
                         </p>
-                        <p className="font-bold text-blue-600 text-xl">
+                        <p className="text-xl font-bold text-blue-600 mb-1">
                           {cotas.toLocaleString()} cotas
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Investimento: <span className="font-bold">{formatCurrency(cotas * (fund.currentPrice || 0))}</span>
+                        <p className="text-xs text-gray-500">
+                          Investimento: {formatCurrency(cotas * (fund.currentPrice || 0))}
                         </p>
                       </div>
                     )

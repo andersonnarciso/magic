@@ -18,6 +18,15 @@ model Fund {
   marketValue     Float?    // Valor de Mercado
   pvp             Float?    // Preço/Valor Patrimonial
   sector          String?   // Setor
+  type            String?   // Tipo do fundo (Tijolo, Papel, etc)
+  netWorth        Float?    // Patrimônio Líquido
+  address         String?   // Endereço
+  city            String?   // Cidade
+  state           String?   // Estado
+  zip             String?   // CEP
+  phone           String?   // Telefone
+  fax             String?   // Fax
+  description     String?   // Descrição do negócio
   updatedAt       DateTime  @updatedAt
   createdAt       DateTime  @default(now())
 

@@ -1,27 +1,32 @@
-import axios from 'axios';
+import fetch from 'node-fetch';
 
-async function testBrapi() {
-    const token = 'w1kY4iCgJsAC23hTGX5rY9';
-    const ticker = 'MXRF11';
-    
-    try {
-        // Teste básico de cotação
-        const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${token}`;
-        const quoteResponse = await axios.get(quoteUrl);
-        console.log('Quote Response:', JSON.stringify(quoteResponse.data, null, 2));
+const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
 
-        // Teste de fundamentos
-        const fundamentalsUrl = `https://brapi.dev/api/quote/${ticker}/fundamentals?token=${token}`;
-        const fundamentalsResponse = await axios.get(fundamentalsUrl);
-        console.log('Fundamentals Response:', JSON.stringify(fundamentalsResponse.data, null, 2));
+async function test() {
+  console.log('Testing BRAPI API...');
+  
+  const response = await fetch(
+    `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
+  );
 
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            console.error('API Error:', error.response?.data);
-        } else {
-            console.error('Error:', error);
-        }
-    }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log(`Total stocks: ${data.stocks.length}`);
+  
+  // Conta quantos terminam em 11
+  const endsWith11 = data.stocks.filter((stock: any) => stock.stock.endsWith('11'));
+  console.log(`Stocks ending with 11: ${endsWith11.length}`);
+  
+  // Lista TODOS que terminam em 11 em ordem alfabética
+  console.log('All stocks ending with 11:');
+  endsWith11
+    .sort((a: any, b: any) => a.stock.localeCompare(b.stock))
+    .forEach((stock: any) => {
+      console.log(`${stock.stock}: ${stock.name}`);
+    });
 }
 
-testBrapi();
+test().catch(console.error);

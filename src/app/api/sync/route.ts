@@ -1,130 +1,146 @@
-import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { getLastDividendFromInvestidor10 } from '@/services/scraping'
+import { prisma } from '@/lib/prisma'
+
+const BRAPI_TOKEN = 'w1kY4iCgJsAC23hTGX5rY9'
 
 export async function GET() {
   try {
-    console.log('Starting funds synchronization...')
-    const BRAPI_TOKEN = process.env.BRAPI_TOKEN
-
-    if (!BRAPI_TOKEN) {
-      throw new Error('BRAPI_TOKEN not configured')
-    }
-
-    // Fetch list of all stocks from BRAPI
-    console.log('Fetching funds list from BRAPI...')
-    const response = await fetch(
+    console.log('Starting fund sync...')
+    
+    // Limpa o banco antes de sincronizar
+    console.log('Cleaning database...')
+    await prisma.fund.deleteMany()
+    
+    // Get list of all stocks from BRAPI
+    const stockListResponse = await fetch(
       `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
     )
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch funds list: ${response.status} ${response.statusText}`)
+    if (!stockListResponse.ok) {
+      throw new Error(`HTTP error! status: ${stockListResponse.status}`)
     }
 
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Invalid response from BRAPI API: not JSON')
-    }
+    const stockListData = await stockListResponse.json()
+    const stocks = stockListData.stocks || [];
+    console.log(`Total stocks from API: ${stocks.length}`);
 
-    const data = await response.json()
-    const fiiList = data.stocks.filter((stock: any) => stock.stock.endsWith('11'))
-    console.log(`Found ${fiiList.length} FIIs in BRAPI`)
+    // Filter potential FIIs (ending with 11)
+    const potentialFiis = stocks.filter(
+      (stock: any) => stock.stock?.endsWith('11')
+    );
+    
+    console.log(`Found ${potentialFiis.length} potential FIIs`);
+    console.log('First 10 potential FIIs:', potentialFiis.slice(0, 10));
+    console.log('All potential FIIs:', potentialFiis.map(s => s.stock).join(', '));
 
-    // Buscar dividendos para cada FII do Investidor10
-    console.log('Fetching dividends from Investidor10 for each FII...')
-    const fiiWithDividends = await Promise.all(
-      fiiList.map(async (fund: any) => {
+    // Get detailed data for each potential FII
+    const fiiDetails = await Promise.all(
+      potentialFiis.map(async (stock: any) => {
         try {
-          // Busca dividendos diretamente do Investidor10
-          const investidor10Data = await getLastDividendFromInvestidor10(fund.stock)
-          
-          if (investidor10Data.value) {
-            console.log(`Found dividend for ${fund.stock} from Investidor10: ${investidor10Data.value}`)
-            return {
-              ...fund,
-              lastDividend: investidor10Data.value,
-              lastDividendDate: investidor10Data.date,
-              source: 'Investidor10'
-            }
+          console.log(`Fetching details for ${stock.stock}...`);
+          const quoteResponse = await fetch(
+            `https://brapi.dev/api/quote/${stock.stock}?modules=summaryProfile,defaultKeyStatistics&token=${BRAPI_TOKEN}`
+          );
+
+          if (!quoteResponse.ok) {
+            console.error(`Failed to fetch ${stock.stock}: ${quoteResponse.status}`);
+            return null;
           }
 
-          console.warn(`No dividend found for ${fund.stock} in Investidor10`)
+          const quoteData = await quoteResponse.json();
+          const result = quoteData.results[0];
+
+          if (!result || !result.regularMarketPrice) {
+            console.error(`No data for ${stock.stock}`);
+            return null;
+          }
+
+          // Verifica se é um FII baseado no nome e outras características
+          const name = result.longName || stock.name || stock.stock;
+          const nonFiiWords = [
+            'BANCO', 'BANCOS', 'FINANCEIRA', 'SEGURADORA', 'HOLDING',
+            'ENERGIA', 'ALIMENTOS', 'VAREJO', 'INDUSTRIA', 'PETROLEO',
+            'ACUCAR', 'PAPEL', 'SIDERURGIA', 'TELECOMUNICACOES',
+            'ON', 'PN', 'UNT', 'OR', 'PR', 'PNA', 'PNB', 'PNC', 'PND'
+          ];
+
+          // Se tem alguma palavra que indica que não é FII, pula
+          if (nonFiiWords.some(word => name.toUpperCase().includes(word))) {
+            console.log(`Skipping ${stock.stock} - name contains non-FII word`);
+            return null;
+          }
+
+          // Se tem preço muito alto (acima de 1000), provavelmente não é FII
+          if (result.regularMarketPrice > 1000) {
+            console.log(`Skipping ${stock.stock} - price too high (${result.regularMarketPrice})`);
+            return null;
+          }
+
           return {
-            ...fund,
-            lastDividend: 0,
-            lastDividendDate: null,
-            source: 'none'
-          }
-
+            ticker: stock.stock,
+            name: name,
+            price: result.regularMarketPrice,
+            pvp: result.defaultKeyStatistics?.priceToBook || null,
+            lastDividend: result.defaultKeyStatistics?.lastDividendValue || null,
+            dividendYield: result.defaultKeyStatistics?.dividendYield || null,
+            sector: result.summaryProfile?.sector || null,
+            lastDividendDate: result.defaultKeyStatistics?.lastDividendDate || null
+          };
         } catch (error) {
-          console.error(`Error fetching dividends for ${fund.stock}:`, error)
-          return {
-            ...fund,
-            lastDividend: 0,
-            lastDividendDate: null,
-            source: 'error'
-          }
+          console.error(`Error fetching ${stock.stock}:`, error);
+          return null;
         }
       })
-    )
+    );
 
-    // Estatísticas
-    const stats = fiiWithDividends.reduce((acc: any, fund: any) => {
-      acc.total++
-      acc[fund.source] = (acc[fund.source] || 0) + 1
-      return acc
-    }, { total: 0 })
+    // Filter out failed requests and non-FIIs
+    const validFiis = fiiDetails.filter((fii): fii is NonNullable<typeof fii> => fii !== null);
+    console.log(`Successfully fetched ${validFiis.length} valid FIIs`);
 
-    console.log('Syncing funds to database...')
-    // Processa os fundos em lotes para evitar sobrecarga
-    const batchSize = 5 // Reduzido de 10 para 5
-    const delay = 5000 // Aumentado de 2s para 5s
-
-    for (let i = 0; i < fiiWithDividends.length; i += batchSize) {
-      const batch = fiiWithDividends.slice(i, i + batchSize)
-      
-      // Processa o lote atual
-      await Promise.all(batch.map(async (fund) => {
+    // Save to database
+    const savedFiis = await Promise.all(
+      validFiis.map(async (fii) => {
         try {
-          const lastDividend = await getLastDividendFromInvestidor10(fund.stock)
-          if (lastDividend.value !== null && lastDividend.date !== null) {
-            await prisma.fund.upsert({
-              where: { ticker: fund.stock },
-              update: { lastDividendDate: lastDividend.date },
-              create: { 
-                ticker: fund.stock,
-                name: fund.stock, // Usando o ticker como nome temporário
-                currentPrice: 0,
-                lastDividend: 0,
-                lastDividendDate: lastDividend.date,
-                updatedAt: new Date()
-              }
-            })
-          }
+          return await prisma.fund.upsert({
+            where: { ticker: fii.ticker },
+            update: {
+              name: fii.name,
+              price: fii.price,
+              pvp: fii.pvp,
+              lastDividend: fii.lastDividend,
+              dividendYield: fii.dividendYield,
+              sector: fii.sector,
+              lastDividendDate: fii.lastDividendDate ? new Date(fii.lastDividendDate) : null,
+              updatedAt: new Date()
+            },
+            create: {
+              ticker: fii.ticker,
+              name: fii.name,
+              price: fii.price,
+              pvp: fii.pvp,
+              lastDividend: fii.lastDividend,
+              dividendYield: fii.dividendYield,
+              sector: fii.sector,
+              lastDividendDate: fii.lastDividendDate ? new Date(fii.lastDividendDate) : null
+            }
+          });
         } catch (error) {
-          console.error(`Error processing fund ${fund.stock}:`, error)
+          console.error(`Error saving ${fii.ticker}:`, error);
+          return null;
         }
-      }))
+      })
+    );
 
-      // Aguarda o delay antes de processar o próximo lote
-      if (i + batchSize < fiiWithDividends.length) {
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-    }
+    const successfullySaved = savedFiis.filter((fii): fii is NonNullable<typeof fii> => fii !== null);
+    console.log(`Successfully saved ${successfullySaved.length} FIIs`);
 
-    console.log('Synchronization completed successfully')
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Funds synchronized successfully',
-      count: fiiWithDividends.length,
-      stats
-    })
-
+      count: successfullySaved.length
+    });
   } catch (error) {
     console.error('Error syncing funds:', error)
-    return NextResponse.json(
-      { success: false, message: `Failed to sync funds: ${error}` },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
