@@ -22,7 +22,7 @@ export async function GET() {
       fiiList.map(async (fund: any) => {
         try {
           const dividendResponse = await fetch(
-            `https://brapi.dev/api/quote/${fund.stock}?token=${BRAPI_TOKEN}&fundamental=true`
+            `https://brapi.dev/api/quote/${fund.stock}/dividends?token=${BRAPI_TOKEN}`
           )
           
           if (!dividendResponse.ok) {
@@ -31,9 +31,9 @@ export async function GET() {
           }
 
           const dividendData = await dividendResponse.json()
-          const stats = dividendData.results[0]?.defaultKeyStatistics
-          const lastDividend = stats?.lastDividendValue || 0
-          const lastDividendDate = stats?.lastDividendDate ? new Date(stats.lastDividendDate) : null
+          const dividends = dividendData.dividends || []
+          const lastDividend = dividends[0]?.value || 0
+          const lastDividendDate = dividends[0]?.paymentDate ? new Date(dividends[0].paymentDate) : null
 
           return {
             ...fund,
