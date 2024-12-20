@@ -88,7 +88,6 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
             <div className="flex items-center gap-4 w-full">
               <div className="flex-shrink-0">
                 <h2 className="text-xl font-bold text-gray-900">{fund.ticker}</h2>
-                <p className="text-sm text-gray-600">{fund.name}</p>
               </div>
               {/* Espaço para Google AdSense */}
               <div className="bg-gray-100 border border-gray-200 rounded px-3 py-2 text-xs text-gray-500 hidden md:block flex-grow">

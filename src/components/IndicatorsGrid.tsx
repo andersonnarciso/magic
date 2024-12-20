@@ -22,12 +22,27 @@ export default function IndicatorsGrid() {
   useEffect(() => {
     const fetchIndicators = async () => {
       try {
-        const response = await fetch('/api/indicators');
-        if (!response.ok) {
+        // Busca indicadores gerais
+        const indicatorsResponse = await fetch('/api/indicators');
+        if (!indicatorsResponse.ok) {
           throw new Error('Failed to fetch indicators');
         }
-        const data = await response.json();
-        setIndicators(data);
+        const indicatorsData = await indicatorsResponse.json();
+
+        // Busca Selic separadamente
+        const selicResponse = await fetch('/api/selic');
+        if (!selicResponse.ok) {
+          throw new Error('Failed to fetch Selic');
+        }
+        const selicData = await selicResponse.json();
+        
+        // Atualiza o valor da Selic nos indicadores
+        indicatorsData.selic = {
+          ...indicatorsData.selic,
+          value: selicData.selic
+        };
+
+        setIndicators(indicatorsData);
       } catch (err) {
         setError('Erro ao carregar indicadores');
         console.error(err);

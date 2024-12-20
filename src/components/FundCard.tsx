@@ -19,16 +19,20 @@ interface FundCardProps {
 export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
   const getBadgeColor = (type: string | null) => {
     switch (type) {
+      case 'Energia':
+        return 'border-transparent bg-yellow-500 text-white hover:bg-yellow-500/80'
+      case 'Agro':
+        return 'border-transparent bg-green-600 text-white hover:bg-green-600/80'
       case 'Híbrido':
-        return 'bg-lime-500 hover:bg-lime-500/80 text-white'
+        return 'border-transparent bg-lime-500 text-white hover:bg-lime-500/80'
       case 'Tijolo':
-        return 'bg-orange-500 hover:bg-orange-500/80 text-white'
+        return 'border-transparent bg-orange-500 text-white hover:bg-orange-500/80'
       case 'Papel':
-        return 'bg-blue-500 hover:bg-blue-500/80 text-white'
+        return 'border-transparent bg-blue-500 text-white hover:bg-blue-500/80'
       case 'FOF':
-        return 'bg-purple-500 hover:bg-purple-500/80 text-white'
+        return 'border-transparent bg-purple-500 text-white hover:bg-purple-500/80'
       default:
-        return 'bg-gray-500 hover:bg-gray-500/80 text-white'
+        return 'border-transparent bg-gray-500 text-white hover:bg-gray-500/80'
     }
   }
 
@@ -66,7 +70,6 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{fund.ticker}</CardTitle>
           <Badge 
-            variant="secondary" 
             className={cn(getBadgeColor(fund.type))}
           >
             {fund.type || 'N/A'}

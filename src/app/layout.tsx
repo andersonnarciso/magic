@@ -9,8 +9,8 @@ import Footer from '@/components/Footer'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Ferramentas FII',
-  description: 'Ferramentas para análise de Fundos de Investimento Imobiliário',
+  title: 'Ações, Fundos Imobiliários, Índices e BDRs',
+  description: 'Ferramentas para análise de Ações, Fundos Imobiliários, Índices e BDRs',
 }
 
 export default function RootLayout({

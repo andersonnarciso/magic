@@ -59,7 +59,7 @@ export async function GET() {
           const name = result.longName || stock.name || stock.stock;
           const nonFiiWords = [
             'BANCO', 'BANCOS', 'FINANCEIRA', 'SEGURADORA', 'HOLDING',
-            'ENERGIA', 'ALIMENTOS', 'VAREJO', 'INDUSTRIA', 'PETROLEO',
+            'ALIMENTOS', 'VAREJO', 'INDUSTRIA', 'PETROLEO',
             'ACUCAR', 'PAPEL', 'SIDERURGIA', 'TELECOMUNICACOES',
             'ON', 'PN', 'UNT', 'OR', 'PR', 'PNA', 'PNB', 'PNC', 'PND'
           ];
@@ -76,10 +76,71 @@ export async function GET() {
             return null;
           }
 
+          // Determina o tipo do fundo baseado no nome
+          let type = null;
+          const upperName = name.toUpperCase();
+          const ticker = stock.stock.toUpperCase();
+          
+          // Energia
+          if (upperName.includes('ENERGIA') || upperName.includes('ENERGISA') || 
+              upperName.includes('ENGIE') || ticker.startsWith('ENGI') ||
+              upperName.includes('POWER') || upperName.includes('ENERGÉTICA')) {
+            type = 'Energia';
+          }
+          // Agro
+          else if (upperName.includes('AGRO') || upperName.includes('AGRICULTURA') || 
+              upperName.includes('AGRICOLA') || upperName.includes('AGRÍCOLA') ||
+              upperName.includes('RURAL') || upperName.includes('FAZENDA')) {
+            type = 'Agro';
+          }
+          // Papel
+          else if (upperName.includes('RECEBÍVEIS') || upperName.includes('RECEBIVEIS') || 
+              upperName.includes('CREDITO') || upperName.includes('CRÉDITO') ||
+              upperName.includes('CRI') || upperName.includes('FINANCEIRO') || 
+              upperName.includes('RENDA') || upperName.includes('IMOBILIARIO DE RENDA')) {
+            type = 'Papel';
+          } 
+          // Tijolo
+          else if (upperName.includes('LOGÍSTICA') || upperName.includes('LOGISTICA') || 
+                   upperName.includes('INDUSTRIAL') || upperName.includes('SHOPPING') ||
+                   upperName.includes('COMERCIAL') || upperName.includes('VAREJO') ||
+                   upperName.includes('HOSPITAL') || upperName.includes('EDUCACIONAL') ||
+                   upperName.includes('HOTEL') || upperName.includes('OFFICE') ||
+                   upperName.includes('CORPORATIVO') || upperName.includes('GALPÃO') ||
+                   upperName.includes('GALPAO') || upperName.includes('IMOBILIARIO') ||
+                   upperName.includes('EDIFICIO') || upperName.includes('EDIFÍCIO') ||
+                   upperName.includes('TORRE') || upperName.includes('SQUARE') ||
+                   upperName.includes('CENTER') || upperName.includes('BUSINESS') ||
+                   upperName.includes('CORPORATE') || upperName.includes('MALL') ||
+                   upperName.includes('PLAZA') || upperName.includes('PARK') ||
+                   upperName.includes('OUTLET') || upperName.includes('ANDAMENTO') ||
+                   upperName.includes('COMERCIAIS') || upperName.includes('COMERCIAL') ||
+                   upperName.includes('LAJES') || upperName.includes('ESCRITÓRIOS') ||
+                   upperName.includes('ESCRITORIOS') || upperName.includes('OFFICES') ||
+                   upperName.includes('SALA') || upperName.includes('SALAS') ||
+                   upperName.includes('ANDAR') || upperName.includes('ANDARES')) {
+            type = 'Tijolo';
+          } 
+          // FOF
+          else if (upperName.includes('FUNDO DE FUNDOS') || upperName.includes('FOF') ||
+                   upperName.includes('FII') || upperName.includes('IMOBILIÁRIOS')) {
+            type = 'FOF';
+          } 
+          // Híbrido
+          else if (upperName.includes('HÍBRIDO') || upperName.includes('HIBRIDO') ||
+                   upperName.includes('MISTO') || upperName.includes('DESENVOLVIMENTO')) {
+            type = 'Híbrido';
+          }
+          // Se ainda não identificou o tipo mas tem "FUNDO" no nome, é provavelmente Tijolo
+          else if (upperName.includes('FUNDO') && upperName.includes('IMOBILIÁRIO')) {
+            type = 'Tijolo';
+          }
+
           return {
             ticker: stock.stock,
             name: name,
-            price: result.regularMarketPrice,
+            currentPrice: result.regularMarketPrice,
+            type: type,
             pvp: result.defaultKeyStatistics?.priceToBook || null,
             lastDividend: result.defaultKeyStatistics?.lastDividendValue || null,
             dividendYield: result.defaultKeyStatistics?.dividendYield || null,
@@ -105,7 +166,8 @@ export async function GET() {
             where: { ticker: fii.ticker },
             update: {
               name: fii.name,
-              price: fii.price,
+              currentPrice: fii.currentPrice,
+              type: fii.type,
               pvp: fii.pvp,
               lastDividend: fii.lastDividend,
               dividendYield: fii.dividendYield,
@@ -116,7 +178,8 @@ export async function GET() {
             create: {
               ticker: fii.ticker,
               name: fii.name,
-              price: fii.price,
+              currentPrice: fii.currentPrice,
+              type: fii.type,
               pvp: fii.pvp,
               lastDividend: fii.lastDividend,
               dividendYield: fii.dividendYield,

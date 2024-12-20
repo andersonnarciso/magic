@@ -2,50 +2,54 @@ import { NextResponse } from 'next/server';
 
 const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
 
+async function fetchBCBIndicator(code: number) {
+  try {
+    const response = await fetch(
+      `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados/ultimos/1?formato=json`
+    );
+    const data = await response.json();
+    return Number(data[0]?.valor || 0);
+  } catch (error) {
+    console.error(`Error fetching BCB indicator ${code}:`, error);
+    return 0;
+  }
+}
+
 export async function GET() {
   try {
-    // Busca indicadores econômicos
-    const indicatorsResponse = await fetch(
-      `https://brapi.dev/api/v2/prime-rate?country=brazil&token=${BRAPI_TOKEN}`
-    );
+    // Busca indicadores do BCB
+    const [ipca, cdi, igpm] = await Promise.all([
+      fetchBCBIndicator(433),  // IPCA
+      fetchBCBIndicator(4389), // CDI
+      fetchBCBIndicator(189)   // IGP-M
+    ]);
 
-    if (!indicatorsResponse.ok) {
-      throw new Error(`HTTP error! status: ${indicatorsResponse.status}`);
-    }
-
-    const indicatorsData = await indicatorsResponse.json();
-    
-    // Busca cotação do dólar
+    // Busca cotação do dólar da Brapi
     const usdResponse = await fetch(
       `https://brapi.dev/api/v2/currency?currency=USD-BRL&token=${BRAPI_TOKEN}`
     );
-
-    if (!usdResponse.ok) {
-      throw new Error(`HTTP error! status: ${usdResponse.status}`);
-    }
-
     const usdData = await usdResponse.json();
     
     // Formata os dados
     const indicators = {
       selic: {
         name: 'Taxa Selic',
-        value: Number(indicatorsData.selic?.value || 0),
+        value: 0, // Será atualizado pelo endpoint específico
         description: 'Taxa básica de juros da economia'
       },
       ipca: {
         name: 'IPCA',
-        value: Number(indicatorsData.ipca?.value || 0),
+        value: ipca,
         description: 'Índice oficial de inflação do Brasil'
       },
       cdi: {
         name: 'CDI',
-        value: Number(indicatorsData.cdi?.value || 0),
+        value: cdi,
         description: 'Certificado de Depósito Interbancário'
       },
       igpm: {
         name: 'IGP-M',
-        value: Number(indicatorsData.igpm?.value || 0),
+        value: igpm,
         description: 'Índice Geral de Preços do Mercado'
       },
       usd: {
@@ -54,13 +58,10 @@ export async function GET() {
         description: 'Cotação do dólar em reais'
       }
     };
-
+    
     return NextResponse.json(indicators);
   } catch (error) {
     console.error('Error fetching indicators:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch indicators' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch indicators' }, { status: 500 });
   }
 }

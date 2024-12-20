@@ -51,9 +51,9 @@ export default function Home({ searchParams }: HomeProps) {
     <div className="w-full px-6 space-y-8 max-w-[1600px] mx-auto">
       {/* Hero Section */}
       <section className="pt-12 text-center space-y-4">
-        <h1 className="text-4xl font-bold">Ferramentas FII</h1>
+        <h1 className="text-4xl font-bold">Invest Tools</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto inherit">
-          Analise e compare Fundos de Investimento Imobiliário de forma simples e rápida
+          Analise e compare Ações, Fundos Imobiliários, Índices e BDRs de forma simples e rápida
         </p>
       </section>
 
@@ -65,7 +65,7 @@ export default function Home({ searchParams }: HomeProps) {
             <div className="bg-white shadow rounded-lg p-8">
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  Fundos Imobiliários
+                  Ativos Disponíveis
                 </h2>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex flex-col gap-1">
@@ -116,8 +116,9 @@ export default function Home({ searchParams }: HomeProps) {
                       <option value="all">Todos os tipos</option>
                       <option value="Tijolo">Tijolo</option>
                       <option value="Papel">Papel</option>
-                      <option value="Híbrido">Híbrido</option>
                       <option value="FOF">FOF</option>
+                      <option value="Energia">Energia</option>
+                      <option value="Agro">Agro</option>
                     </select>
                   </div>
 
