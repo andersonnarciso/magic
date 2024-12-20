@@ -18,7 +18,7 @@ interface FundCardProps {
 
 export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
   const getBadgeColor = (type: string | null) => {
-    switch (type) {
+    switch (type?.trim()) {
       case 'Energia':
         return 'border-transparent bg-yellow-500 text-white hover:bg-yellow-500/80'
       case 'Agro':

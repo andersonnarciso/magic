@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma'
 const BRAPI_TOKEN = 'w1kY4iCgJsAC23hTGX5rY9'
 
 export async function GET() {
+  return POST();
+}
+
+export async function POST() {
   try {
     console.log('Starting fund sync...')
     
@@ -55,6 +59,14 @@ export async function GET() {
             return null;
           }
 
+          console.log(`Raw data from Brapi for ${stock.stock}:`, {
+            name: result.longName,
+            sector: result.summaryProfile?.sector,
+            type: result.summaryProfile?.type,
+            industry: result.summaryProfile?.industry,
+            fullData: result
+          });
+
           // Verifica se é um FII baseado no nome e outras características
           const name = result.longName || stock.name || stock.stock;
           const nonFiiWords = [
@@ -76,32 +88,67 @@ export async function GET() {
             return null;
           }
 
-          // Determina o tipo do fundo baseado no nome
+          // Determina o tipo do fundo baseado nos dados da API
           let type = null;
           const upperName = name.toUpperCase();
           const ticker = stock.stock.toUpperCase();
+          const industry = (result.summaryProfile?.industry || '').toUpperCase();
+          const sector = (result.summaryProfile?.sector || '').toUpperCase();
           
+          console.log(`Analyzing fund ${ticker}:`, {
+            name: upperName,
+            industry,
+            sector
+          });
+
           // Energia
-          if (upperName.includes('ENERGIA') || upperName.includes('ENERGISA') || 
+          if (industry.includes('ENERGY') || industry.includes('POWER') ||
+              upperName.includes('ENERGIA') || upperName.includes('ENERGISA') || 
               upperName.includes('ENGIE') || ticker.startsWith('ENGI') ||
-              upperName.includes('POWER') || upperName.includes('ENERGÉTICA')) {
+              upperName.includes('POWER') || upperName.includes('ENERGÉTICA') ||
+              upperName.includes('RENOVAVEL') || upperName.includes('RENOVÁVEL') ||
+              upperName.includes('SOLAR') || upperName.includes('EOLICA') ||
+              upperName.includes('EÓLICA')) {
             type = 'Energia';
           }
           // Agro
-          else if (upperName.includes('AGRO') || upperName.includes('AGRICULTURA') || 
+          else if (industry.includes('AGRI') || industry.includes('FARM') ||
+              upperName.includes('AGRO') || upperName.includes('AGRICULTURA') || 
               upperName.includes('AGRICOLA') || upperName.includes('AGRÍCOLA') ||
-              upperName.includes('RURAL') || upperName.includes('FAZENDA')) {
+              upperName.includes('RURAL') || upperName.includes('FAZENDA') ||
+              upperName.includes('TERRA') || upperName.includes('TERRAS')) {
             type = 'Agro';
           }
           // Papel
-          else if (upperName.includes('RECEBÍVEIS') || upperName.includes('RECEBIVEIS') || 
+          else if (industry.includes('MORTGAGE') || industry.includes('DEBT') ||
+              upperName.includes('RECEBÍVEIS') || upperName.includes('RECEBIVEIS') || 
               upperName.includes('CREDITO') || upperName.includes('CRÉDITO') ||
               upperName.includes('CRI') || upperName.includes('FINANCEIRO') || 
-              upperName.includes('RENDA') || upperName.includes('IMOBILIARIO DE RENDA')) {
+              upperName.includes('RENDA') || upperName.includes('IMOBILIARIO DE RENDA') ||
+              upperName.includes('SECURITIES') || upperName.includes('SECURITIZAÇÃO') ||
+              upperName.includes('SECURITIZACAO')) {
             type = 'Papel';
           } 
+          // FOF
+          else if (industry.includes('FUND') || industry.includes('ETF') ||
+                   upperName.includes('FUNDO DE FUNDOS') || upperName.includes('FOF') ||
+                   upperName.includes('FII') || upperName.includes('IMOBILIÁRIOS') ||
+                   upperName.includes('FUNDO DE INVESTIMENTO EM COTAS') ||
+                   upperName.includes('PORTFOLIO') || upperName.includes('PORTFÓLIO')) {
+            type = 'FOF';
+          } 
+          // Híbrido
+          else if (industry.includes('HYBRID') || industry.includes('MIXED') ||
+                   upperName.includes('HÍBRIDO') || upperName.includes('HIBRIDO') ||
+                   upperName.includes('MISTO') || upperName.includes('DESENVOLVIMENTO') ||
+                   upperName.includes('MULTI') || upperName.includes('DIVERSIFICADO')) {
+            type = 'Híbrido';
+          }
           // Tijolo
-          else if (upperName.includes('LOGÍSTICA') || upperName.includes('LOGISTICA') || 
+          else if (industry.includes('OFFICE') || industry.includes('RETAIL') || 
+                   industry.includes('INDUSTRIAL') || industry.includes('RESIDENTIAL') ||
+                   industry.includes('DIVERSIFIED') ||
+                   upperName.includes('LOGÍSTICA') || upperName.includes('LOGISTICA') || 
                    upperName.includes('INDUSTRIAL') || upperName.includes('SHOPPING') ||
                    upperName.includes('COMERCIAL') || upperName.includes('VAREJO') ||
                    upperName.includes('HOSPITAL') || upperName.includes('EDUCACIONAL') ||
@@ -121,20 +168,24 @@ export async function GET() {
                    upperName.includes('ANDAR') || upperName.includes('ANDARES')) {
             type = 'Tijolo';
           } 
-          // FOF
-          else if (upperName.includes('FUNDO DE FUNDOS') || upperName.includes('FOF') ||
-                   upperName.includes('FII') || upperName.includes('IMOBILIÁRIOS')) {
-            type = 'FOF';
-          } 
-          // Híbrido
-          else if (upperName.includes('HÍBRIDO') || upperName.includes('HIBRIDO') ||
-                   upperName.includes('MISTO') || upperName.includes('DESENVOLVIMENTO')) {
-            type = 'Híbrido';
-          }
+
           // Se ainda não identificou o tipo mas tem "FUNDO" no nome, é provavelmente Tijolo
-          else if (upperName.includes('FUNDO') && upperName.includes('IMOBILIÁRIO')) {
+          if (!type && upperName.includes('FUNDO') && upperName.includes('IMOBILIÁRIO')) {
             type = 'Tijolo';
           }
+
+          // Se ainda não identificou o tipo mas é um FII (termina com 11), define como Tijolo
+          if (!type && ticker.endsWith('11')) {
+            type = 'Tijolo';
+          }
+
+          console.log(`Fund ${ticker} determined as type: ${type} based on industry: ${industry}, sector: ${sector}`);
+          // Garante que todo FII tenha um tipo
+          if (!type) {
+            type = 'Tijolo'; // Tipo padrão para FIIs não identificados
+          }
+
+          console.log(`Fund ${ticker} type determined as: ${type}`);
 
           return {
             ticker: stock.stock,
@@ -157,12 +208,14 @@ export async function GET() {
     // Filter out failed requests and non-FIIs
     const validFiis = fiiDetails.filter((fii): fii is NonNullable<typeof fii> => fii !== null);
     console.log(`Successfully fetched ${validFiis.length} valid FIIs`);
+    console.log('Sample of FIIs before saving:', validFiis.slice(0, 5));
 
     // Save to database
     const savedFiis = await Promise.all(
       validFiis.map(async (fii) => {
         try {
-          return await prisma.fund.upsert({
+          console.log(`Saving fund ${fii.ticker} with type: ${fii.type}`);
+          const saved = await prisma.fund.upsert({
             where: { ticker: fii.ticker },
             update: {
               name: fii.name,
@@ -187,6 +240,8 @@ export async function GET() {
               lastDividendDate: fii.lastDividendDate ? new Date(fii.lastDividendDate) : null
             }
           });
+          console.log(`Saved fund ${fii.ticker}:`, saved);
+          return saved;
         } catch (error) {
           console.error(`Error saving ${fii.ticker}:`, error);
           return null;

@@ -39,7 +39,12 @@ export async function GET(request: NextRequest) {
     });
 
     console.log('Total de fundos:', funds.length);
-    console.log('Primeiros 5 fundos:', funds.slice(0, 5).map(f => ({ ticker: f.ticker, pvp: f.pvp })));
+    console.log('Detalhes dos primeiros 5 fundos:', funds.slice(0, 5).map(f => ({
+      ticker: f.ticker,
+      type: f.type,
+      pvp: f.pvp,
+      name: f.name
+    })));
 
     // Separa em dois grupos
     const fundsWithPvp = funds.filter(f => f.pvp > 0)
