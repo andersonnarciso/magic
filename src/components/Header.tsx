@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { HeaderIndicators } from './HeaderIndicators'
 
 export function Header() {
   return (
@@ -7,6 +8,7 @@ export function Header() {
         <Link href="/" className="text-xl font-bold hover:text-primary transition-colors">
           Invest Tools
         </Link>
+        <HeaderIndicators />
       </div>
     </header>
   )

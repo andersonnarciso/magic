@@ -5,7 +5,6 @@ import FundList from '@/components/FundList'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Loading from './loading'
-import IndicatorsGrid from '@/components/IndicatorsGrid'
 
 interface HomeProps {
   searchParams?: { [key: string]: string | string[] | undefined }
@@ -60,7 +59,6 @@ export default function Home({ searchParams }: HomeProps) {
       {/* Main Content */}
       <main className="flex min-h-screen flex-col items-center p-4 md:p-8">
         <div className="w-full max-w-[1600px]">
-          <IndicatorsGrid />
           <Suspense fallback={<Loading />}>
             <div className="bg-white shadow rounded-lg p-8">
               <div className="flex justify-between items-center mb-8">
@@ -140,7 +138,14 @@ export default function Home({ searchParams }: HomeProps) {
                   </div>
                 </div>
               </div>
-              <FundList initialFunds={[]} />
+              <FundList
+                page={page}
+                perPage={Number(itemsPerPage)}
+                search={search}
+                orderBy={sortBy}
+                type={filterType}
+                dividend={filterDividend}
+              />
             </div>
           </Suspense>
         </div>
