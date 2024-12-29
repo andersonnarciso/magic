@@ -97,10 +97,12 @@ export default function Home({ searchParams }: HomeProps) {
                       onChange={(e) => handleParamChange('orderBy', e.target.value)}
                     >
                       <option value="">Selecione uma ordenação</option>
-                      <option value="dividendYield">Maiores Dividend Yield</option>
-                      <option value="marketValue">Maiores Valor de Mercado</option>
-                      <option value="pvp">Menor P/VP</option>
-                      <option value="lastDividend">Maior Dividendo</option>
+                      <option value="pvp">P/VP - Menor para Maior</option>
+                      <option value="dividendYield">Dividend Yield - Menor para Maior</option>
+                      <option value="lastDividend">Último Rendimento - Menor para Maior</option>
+                      <option value="marketValue">Valor de Mercado - Menor para Maior</option>
+                      <option value="ticker">Código - A-Z</option>
+                      <option value="name">Nome - A-Z</option>
                     </select>
                   </div>
 
@@ -153,3 +155,5 @@ export default function Home({ searchParams }: HomeProps) {
     </div>
   )
 }
+
+

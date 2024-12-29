@@ -158,12 +158,12 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
                 </h3>
                 <div className="bg-white p-4 rounded-lg text-center">
                   <p className="text-2xl font-bold text-green-600 mb-3">
-                    {Math.ceil(fund.currentPrice / (fund.lastDividend || 1)).toLocaleString()} cotas
+                    {Math.ceil((fund.currentPrice || 0) / (fund.lastDividend || 1)).toLocaleString()} cotas
                   </p>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Para iniciar o efeito bola de neve com <span className="font-bold">{fund.ticker}</span>, você precisará de <span className="font-bold">{Math.ceil(fund.currentPrice / (fund.lastDividend || 1)).toLocaleString()} cotas</span>, 
-                    o que representa um investimento aproximado de <span className="font-bold">{formatCurrency(Math.ceil(fund.currentPrice / (fund.lastDividend || 1)) * (fund.currentPrice || 0))}</span>.
-                    Com este investimento, seus dividendos mensais serão de <span className="font-bold">{formatCurrency(Math.ceil(fund.currentPrice / (fund.lastDividend || 1)) * (fund.lastDividend || 0))}</span>, 
+                    Para iniciar o efeito bola de neve com <span className="font-bold">{fund.ticker}</span>, você precisará de <span className="font-bold">{Math.ceil((fund.currentPrice || 0) / (fund.lastDividend || 1)).toLocaleString()} cotas</span>, 
+                    o que representa um investimento aproximado de <span className="font-bold">{formatCurrency(Math.ceil((fund.currentPrice || 0) / (fund.lastDividend || 1)) * (fund.currentPrice || 0))}</span>.
+                    Com este investimento, seus dividendos mensais serão de <span className="font-bold">{formatCurrency(Math.ceil((fund.currentPrice || 0) / (fund.lastDividend || 1)) * (fund.lastDividend || 0))}</span>, 
                     permitindo que você compre uma nova cota todo mês apenas com os rendimentos.
                   </p>
                 </div>
@@ -175,23 +175,34 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
                   Renda Passiva para Independência Financeira
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[1000, 5000, 10000].map((value) => {
-                    const cotas = Math.ceil((value / (fund.lastDividend || 1)))
+                  {[1000, 5000, 10000].map((targetIncome) => {
+                    // Calcula o rendimento mensal por cota
+                    const monthlyDividendPerShare = fund.lastDividend || 0;
+                    
+                    // Calcula quantas cotas são necessárias para atingir a renda alvo
+                    const requiredShares = Math.ceil(targetIncome / monthlyDividendPerShare);
+                    
+                    // Calcula o investimento necessário
+                    const requiredInvestment = requiredShares * (fund.currentPrice || 0);
+
                     return (
-                      <div key={value} className="bg-white p-3 rounded-lg text-center">
+                      <div key={targetIncome} className="bg-white p-3 rounded-lg text-center">
                         <p className="text-sm text-gray-600 mb-2">
-                          Para receber {formatCurrency(value)} por mês
+                          Para receber {formatCurrency(targetIncome)} por mês
                         </p>
                         <p className="text-xl font-bold text-blue-600 mb-1">
-                          {cotas.toLocaleString()} cotas
+                          {requiredShares.toLocaleString()} cotas
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Investimento: {formatCurrency(cotas * (fund.currentPrice || 0))}
+                        <p className="text-sm text-gray-500">
+                          Investimento: {formatCurrency(requiredInvestment)}
                         </p>
                       </div>
                     )
                   })}
                 </div>
+                <p className="text-sm text-gray-500 mt-4 text-center">
+                  * Cálculo baseado no último rendimento de {formatCurrency(fund.lastDividend)} por cota
+                </p>
               </div>
             </>
           )}

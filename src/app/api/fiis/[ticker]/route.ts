@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getLastDividendFromInvestidor10, getDividendYieldFromInvestidor10 } from '@/services/scraping'
+import { getFundDetails } from '@/services/scraping'
 
 export async function GET(
   request: Request,
@@ -7,17 +7,9 @@ export async function GET(
 ) {
   try {
     const ticker = params.ticker.toLowerCase()
+    const fundDetails = await getFundDetails(ticker)
     
-    const [lastDividend, dy] = await Promise.all([
-      getLastDividendFromInvestidor10(ticker),
-      getDividendYieldFromInvestidor10(ticker)
-    ])
-    
-    return NextResponse.json({
-      ticker,
-      lastDividend,
-      dy
-    })
+    return NextResponse.json(fundDetails)
   } catch (error) {
     console.error(`Error fetching data for ${params.ticker}:`, error)
     return NextResponse.json({ error: 'Failed to fetch FII data' }, { status: 500 })

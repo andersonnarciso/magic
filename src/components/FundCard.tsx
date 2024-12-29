@@ -1,7 +1,7 @@
 'use client'
 
 import { Fund } from '@prisma/client'
-import { formatCurrency, formatPercent } from '../lib/format'
+import { formatCurrency, formatPercent, formatPercentDirect } from '../lib/format'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -93,28 +93,32 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
             )}
           </div>
 
-          <div className="flex flex-col">
-            <span className="text-sm text-gray-500">P/VP</span>
-            <div className="flex items-center gap-2">
-              <span className={`text-lg font-semibold ${getPvpColor(fund.pvp)}`}>
-                {fund.pvp ? fund.pvp.toFixed(2) : 'N/A'}
-              </span>
-              {fund.pvp && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="cursor-help">
-                      <Info size={16} className={getTooltipColor(fund.pvp)} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent 
-                    className="bg-white border border-gray-200 shadow-lg p-3 rounded-lg w-64 text-sm text-gray-700"
-                    side="right"
-                  >
-                    <p className="leading-relaxed">{getPvpTooltip(fund.pvp)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+          <div>
+            <p className="text-sm text-muted-foreground">P/VP</p>
+            {isUpdating ? (
+              <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className={`text-lg font-semibold ${getPvpColor(fund.pvp)}`}>
+                  {fund.pvp ? fund.pvp.toFixed(2) : 'N/A'}
+                </span>
+                {fund.pvp && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="cursor-help">
+                        <Info size={16} className={getTooltipColor(fund.pvp)} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      className="bg-white border border-gray-200 shadow-lg p-3 rounded-lg w-64 text-sm text-gray-700"
+                      side="right"
+                    >
+                      <p className="leading-relaxed">{getPvpTooltip(fund.pvp)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -123,7 +127,7 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
               <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
             ) : (
               <p className="font-medium">
-                {formatCurrency(fund.lastDividend || 0)}
+                {fund.lastDividend ? formatPercentDirect(fund.lastDividend / 100) : 'N/A'}
               </p>
             )}
           </div>
@@ -134,7 +138,7 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
               <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
             ) : (
               <p className="font-medium">
-                {formatPercent(fund.dividendYield || 0)}
+                {fund.dividendYield ? formatPercentDirect(fund.dividendYield / 100) : 'N/A'}
               </p>
             )}
           </div>
@@ -142,7 +146,7 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
 
         <div className="flex items-center justify-between mt-auto pt-4 border-t">
           <div className="flex items-center gap-4">
-            <Button onClick={onClick} variant="primary" size="sm" className="bg-blue-500 hover:bg-blue-500/80 text-white">
+            <Button onClick={onClick} variant="default" size="sm" className="bg-blue-500 hover:bg-blue-500/80 text-white">
               Magic Number
             </Button>
             <Link href={`/fund/${fund.ticker}`} className="group">

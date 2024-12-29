@@ -1,79 +1,52 @@
 import { NextResponse } from 'next/server';
 
-const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
-
-async function fetchBCBIndicator(code: number) {
-  try {
-    // Para o CDI, vamos usar uma API diferente
-    if (code === 4389) {
-      try {
-        const response = await fetch(
-          'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json'
-        );
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const text = await response.text();
-        console.log('CDI Response:', text);
-        
-        try {
-          const data = JSON.parse(text);
-          const value = Number(data[0]?.valor || 0);
-          console.log('CDI Value:', value);
-          return value;
-        } catch (parseError) {
-          console.error('Error parsing CDI JSON:', parseError);
-          // Se falhar, vamos tentar calcular com base na SELIC (98.5% da SELIC)
-          const selicResponse = await fetch(
-            'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json'
-          );
-          const selicData = await selicResponse.json();
-          const selicValue = Number(selicData[0]?.valor || 0);
-          return selicValue * 0.985; // CDI é aproximadamente 98.5% da SELIC
-        }
-      } catch (error) {
-        console.error('Error fetching CDI:', error);
-        return 0;
-      }
-    }
-
-    const response = await fetch(
-      `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados/ultimos/1?formato=json`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return Number(data[0]?.valor || 0);
-  } catch (error) {
-    console.error(`Error fetching BCB indicator ${code}:`, error);
-    return 0;
-  }
-}
+const HG_TOKEN = process.env.HG_TOKEN;
 
 export async function GET() {
   try {
     console.log('Fetching indicators...');
     
-    // Busca indicadores do BCB
-    const [selic, ipca, cdi, igpm] = await Promise.all([
-      fetchBCBIndicator(432),  // SELIC
-      fetchBCBIndicator(433),  // IPCA
-      fetchBCBIndicator(4389), // CDI
-      fetchBCBIndicator(189)   // IGP-M
-    ]);
-
-    console.log('Indicators fetched:', { selic, ipca, cdi, igpm });
-
-    // Busca cotação do dólar da Brapi
-    const usdResponse = await fetch(
-      `https://brapi.dev/api/v2/currency?currency=USD-BRL&token=${BRAPI_TOKEN}`
+    // Busca taxas (CDI e SELIC)
+    const taxesResponse = await fetch(
+      `https://api.hgbrasil.com/finance/taxes?key=${HG_TOKEN}`
     );
-    const usdData = await usdResponse.json();
+
+    if (!taxesResponse.ok) {
+      throw new Error(`HTTP error! status: ${taxesResponse.status}`);
+    }
+
+    const taxesData = await taxesResponse.json();
+    console.log('Taxes data:', JSON.stringify(taxesData, null, 2));
+    
+    // A API retorna os valores como strings, precisamos converter para número
+    const cdi = parseFloat(taxesData.results?.CDI || '0');
+    const selic = parseFloat(taxesData.results?.SELIC || '0');
+
+    // Busca cotação do dólar
+    const quotesResponse = await fetch(
+      `https://api.hgbrasil.com/finance/quotations?key=${HG_TOKEN}`
+    );
+
+    if (!quotesResponse.ok) {
+      throw new Error(`HTTP error! status: ${quotesResponse.status}`);
+    }
+
+    const quotesData = await quotesResponse.json();
+    console.log('Quotes data:', JSON.stringify(quotesData, null, 2));
+    
+    const usdValue = parseFloat(quotesData.results?.currencies?.USD?.buy || '0');
+
+    // Busca IPCA e IGPM do BCB
+    const [ipca, igpm] = await Promise.all([
+      fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json')
+        .then(res => res.json())
+        .then(data => parseFloat(data[0]?.valor || '0'))
+        .catch(() => 0),
+      fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.189/dados/ultimos/1?formato=json')
+        .then(res => res.json())
+        .then(data => parseFloat(data[0]?.valor || '0'))
+        .catch(() => 0)
+    ]);
     
     // Formata os dados
     const indicators = {
@@ -99,16 +72,15 @@ export async function GET() {
       },
       usd: {
         name: 'Dólar',
-        value: Number(usdData.currency?.[0]?.bidPrice || 0),
-        description: 'Cotação do dólar em reais'
+        value: usdValue,
+        description: 'Cotação do dólar comercial'
       }
     };
 
     console.log('Final indicators:', indicators);
-    
     return NextResponse.json(indicators);
   } catch (error) {
     console.error('Error fetching indicators:', error);
-    return NextResponse.json({ error: 'Failed to fetch indicators' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

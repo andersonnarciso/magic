@@ -3,50 +3,66 @@
 import { Fund } from '@prisma/client'
 import FundCard from './FundCard'
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import FundModal from './FundModal'
 import Pagination from './Pagination'
 import Link from 'next/link'
 
 interface FundListProps {
-  initialFunds: Fund[]
+  page: number
+  perPage: number
+  search: string
+  orderBy: string
+  type: string
+  dividend: string
 }
 
-export default function FundList({ initialFunds }: FundListProps) {
-  const [funds, setFunds] = useState<Fund[]>(initialFunds || [])
-  const [page, setPage] = useState(1)
+export default function FundList({ page, perPage, search, orderBy, type, dividend }: FundListProps) {
+  const [funds, setFunds] = useState<Fund[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalFunds, setTotalFunds] = useState(0)
   const [loading, setLoading] = useState(true)
   const [selectedFund, setSelectedFund] = useState<Fund | null>(null)
   const [updatingFunds, setUpdatingFunds] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchFunds = async () => {
+      setLoading(true);
       try {
-        setLoading(true)
-        const searchTerm = searchParams.get('search') || ''
-        const perPage = '8'
-        const orderBy = searchParams.get('orderBy') || ''
-        const type = searchParams.get('type') || 'all'
+        console.log('Fetching funds...');
+        const response = await fetch(
+          `/api/funds?page=${page}&search=${search}&itemsPerPage=${perPage}&orderBy=${orderBy}&type=${type}&dividend=${dividend}`,
+          {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }
+        )
+        const data = await response.json();
+        console.log('Received funds:', data);
         
-        const response = await fetch(`/api/funds?page=${page}&search=${searchTerm}&perPage=${perPage}&orderBy=${orderBy}&type=${type}`)
-        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch funds')
+        }
         
-        setFunds(data.data || [])
-        setTotalPages(data.pagination?.totalPages || 1)
-        setTotalFunds(data.pagination?.total || 0)
-        setLoading(false)
+        setFunds(data.funds || [])
+        setTotalPages(data.totalPages || 1)
+        setTotalFunds(data.total || 0)
       } catch (error) {
         console.error('Error fetching funds:', error)
-        setFunds([])
+        setError('Failed to load funds')
+      } finally {
         setLoading(false)
       }
     }
 
     fetchFunds()
-  }, [page, searchParams])
+  }, [page, perPage, search, orderBy, type, dividend])
 
   const handleFundClick = (fund: Fund) => {
     setSelectedFund(fund)
@@ -57,7 +73,9 @@ export default function FundList({ initialFunds }: FundListProps) {
   }
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage)
+    const params = new URLSearchParams(searchParams?.toString())
+    params.set('page', newPage.toString())
+    router.push(`/?${params.toString()}`)
   }
 
   return (

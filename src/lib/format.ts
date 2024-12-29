@@ -12,3 +12,11 @@ export function formatPercent(value: number): string {
     maximumFractionDigits: 2,
   }).format(value / 100);
 }
+
+export function formatPercentDirect(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}

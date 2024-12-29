@@ -1,31 +1,27 @@
-# Build stage
-FROM node:20 AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
+# Instala OpenSSL e outras dependências necessárias
+RUN apk add --no-cache openssl openssl-dev
+
+# Instala dependências primeiro
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+# Copia arquivos do Prisma e gera o cliente
+COPY prisma ./prisma/
 RUN npx prisma generate
-RUN npm run build
 
-# Production stage
-FROM node:20-slim
+# Copia o resto dos arquivos
+COPY . .
 
-WORKDIR /app
-
-RUN apt-get update -y && apt-get install -y openssl
-
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Limpa o cache do Next.js
+RUN rm -rf .next
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME=0.0.0.0
+ENV NODE_ENV=development
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "dev"]

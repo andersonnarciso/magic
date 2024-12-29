@@ -56,14 +56,7 @@ export async function GET(request: NextRequest) {
               lastDividend: details.lastDividendValue,
               lastDividendDate: details.lastDividendDate ? new Date(details.lastDividendDate) : null,
               currentPrice: details.marketValue,
-              type: details.type,
-              address: details.address,
-              city: details.city,
-              state: details.state,
-              zip: details.zip,
-              phone: details.phone,
-              fax: details.fax,
-              description: details.description,
+              type: details.type
             }
           })
         } catch (error) {

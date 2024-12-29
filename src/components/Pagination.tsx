@@ -12,9 +12,9 @@ interface PaginationProps {
 export default function Pagination({ currentPage, totalPages, onPageChange, totalItems }: PaginationProps) {
   const getPageNumbers = () => {
     const delta = 2; // Número de páginas para mostrar antes e depois da página atual
-    const range = [];
-    const rangeWithDots = [];
-    let l;
+    const range: number[] = [];
+    const rangeWithDots: (number | string)[] = [];
+    let l: number | undefined;
 
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
