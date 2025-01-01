@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic';
@@ -68,29 +68,29 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// FunÃ§Ã£o para mapear o setor para o tipo de fundo
+// Função para mapear o setor para o tipo de fundo
 function mapSectorToType(sector: string): string {
   const sectorMap: { [key: string]: string } = {
     'Shoppings': 'Tijolo',
     'Shopping': 'Tijolo',
     'Lajes Corporativas': 'Tijolo',
-    'LogÃ­stica': 'Tijolo',
-    'ImÃ³veis Industriais e LogÃ­sticos': 'Tijolo',
-    'TÃ­tulos e Val. Mob.': 'Papel',
-    'TÃ­tulos e Valores MobiliÃ¡rios': 'Papel',
-    'PapÃ©is': 'Papel',
+    'Logística': 'Tijolo',
+    'Imóveis Industriais e Logísticos': 'Tijolo',
+    'Títulos e Val. Mob.': 'Papel',
+    'Títulos e Valores Mobiliários': 'Papel',
+    'Papéis': 'Papel',
     'Fundos de Fundos': 'FOF',
     'Fundo de Fundos': 'FOF',
     'FOF': 'FOF',
-    'AgronegÃ³cio': 'Agro',
-    'AgÃªncias de Bancos': 'Tijolo',
+    'Agronegócio': 'Agro',
+    'Agências de Bancos': 'Tijolo',
     'Varejo': 'Tijolo',
     'Educacional': 'Tijolo',
     'Energia': 'Energia',
-    'HÃ­brido': 'HÃ­brido',
-    'Misto': 'HÃ­brido',
+    'Híbrido': 'Híbrido',
+    'Misto': 'Híbrido',
     'Indefinido': 'FOF',
-    'Financeiro e Outros/Fundos/Fundos ImobiliÃ¡rios': 'FOF'
+    'Financeiro e Outros/Fundos/Fundos Imobiliários': 'FOF'
   };
 
   return sectorMap[sector] || 'FOF';
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     const HG_TOKEN = process.env.HG_TOKEN;
     console.log('Starting sync with token:', HG_TOKEN);
 
-    const fiiChunks = chunkArray(FIIS, 5);
+    const fiiChunks = chunkArray(FIIS, 1);
     console.log('FII chunks:', fiiChunks);
 
     const allFiiDetails: FundDetails[] = [];
@@ -142,22 +142,19 @@ export async function GET(request: NextRequest) {
             // Extrai e converte os valores da API
             const currentPrice = fundData.price ? parseFloat(fundData.price) : null;
             const pvp = fundData.financials?.price_to_book_ratio ? parseFloat(fundData.financials.price_to_book_ratio) : null;
-            
-            // MXRF11 tem dividendo fixo de 0.10
-            const lastDividend = ticker === 'MXRF11' ? 0.10 : (fundData.financials?.dividends?.last ? parseFloat(fundData.financials.dividends.last) : null);
-            
-            // Calcula o dividend yield baseado no Ãºltimo dividendo e preÃ§o atual
-            const dividendYield = lastDividend && currentPrice ? ((lastDividend * 12) / currentPrice) * 100 : null;
+            const dividendYield = fundData.financials?.dividends?.yield_12m ? parseFloat(fundData.financials.dividends.yield_12m) : null;
 
-            console.log(`Processing ${ticker}:`, {
+            // Calcula o último dividendo usando o dividend yield anual e o preço atual
+            const lastDividend = (currentPrice && dividendYield) 
+              ? Number((dividendYield * currentPrice / 1200).toFixed(2)) // Divide por 1200 (12 meses * 100 para converter percentual)
+              : null;
+
+            console.log(`Processing ${ticker} with values:`, {
               currentPrice,
-              pvp,
-              lastDividend,
               dividendYield,
-              raw: {
+              lastDividend,
+              rawData: {
                 price: fundData.price,
-                price_to_book_ratio: fundData.financials?.price_to_book_ratio,
-                yield_12m_sum: fundData.financials?.dividends?.yield_12m_sum,
                 yield_12m: fundData.financials?.dividends?.yield_12m
               }
             });
@@ -166,7 +163,7 @@ export async function GET(request: NextRequest) {
             const result = await prisma.fund.upsert({
               where: { ticker },
               update: {
-                name: fundData.name,
+                name: fundData.name || ticker,
                 currentPrice,
                 marketValue: currentPrice,
                 pvp,
@@ -176,7 +173,7 @@ export async function GET(request: NextRequest) {
               },
               create: {
                 ticker,
-                name: fundData.name,
+                name: fundData.name || ticker,
                 currentPrice,
                 marketValue: currentPrice,
                 pvp,
@@ -184,6 +181,11 @@ export async function GET(request: NextRequest) {
                 dividendYield,
                 type: mapSectorToType(fundData.sector || 'FOF')
               }
+            });
+
+            console.log(`Saved ${ticker} with result:`, {
+              lastDividend: result.lastDividend,
+              dividendYield: result.dividendYield
             });
 
             console.log(`Saved ${ticker}:`, result);
@@ -209,12 +211,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-
-
-
-
-
-
-
-

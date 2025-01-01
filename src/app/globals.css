@@ -32,3 +32,15 @@ body {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
   }
 }
+
+/* Sobrescrevendo o margin-top para a classe específica */
+.flex.min-h-screen.flex-col.items-center.p-4.md\:p-8.space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Ajustando o padding-top para 1.5rem */
+.flex.min-h-screen.flex-col.items-center.p-4.md\:p-8 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}

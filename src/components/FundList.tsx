@@ -10,14 +10,14 @@ import Link from 'next/link'
 
 interface FundListProps {
   page: number
-  perPage: number
+  itemsPerPage: number
   search: string
   orderBy: string
   type: string
   dividend: string
 }
 
-export default function FundList({ page, perPage, search, orderBy, type, dividend }: FundListProps) {
+export default function FundList({ page, itemsPerPage, search, orderBy, type, dividend }: FundListProps) {
   const [funds, setFunds] = useState<Fund[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalFunds, setTotalFunds] = useState(0)
@@ -33,16 +33,24 @@ export default function FundList({ page, perPage, search, orderBy, type, dividen
       setLoading(true);
       try {
         console.log('Fetching funds...');
-        const response = await fetch(
-          `/api/funds?page=${page}&search=${search}&itemsPerPage=${perPage}&orderBy=${orderBy}&type=${type}&dividend=${dividend}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
+        const params = new URLSearchParams()
+        
+        params.set('page', String(page))
+        params.set('itemsPerPage', String(itemsPerPage))
+        params.set('search', search)
+        params.set('orderBy', orderBy)
+        params.set('type', type)
+        params.set('dividend', dividend)
+
+        console.log('API URL:', `/api/funds?${params.toString()}`)
+
+        const response = await fetch(`/api/funds?${params.toString()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
-        )
+        })
         const data = await response.json();
         console.log('Received funds:', data);
         
@@ -52,7 +60,7 @@ export default function FundList({ page, perPage, search, orderBy, type, dividen
         
         setFunds(data.funds || [])
         setTotalPages(data.totalPages || 1)
-        setTotalFunds(data.total || 0)
+        setTotalFunds(data.totalItems || 0)
       } catch (error) {
         console.error('Error fetching funds:', error)
         setError('Failed to load funds')
@@ -62,7 +70,7 @@ export default function FundList({ page, perPage, search, orderBy, type, dividen
     }
 
     fetchFunds()
-  }, [page, perPage, search, orderBy, type, dividend])
+  }, [page, itemsPerPage, search, orderBy, type, dividend])
 
   const handleFundClick = (fund: Fund) => {
     setSelectedFund(fund)

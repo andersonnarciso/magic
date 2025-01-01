@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
@@ -8,91 +8,57 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('itemsPerPage') || '24');
     const search = searchParams.get('search') || '';
-    const type = searchParams.get('type') || '';
-    const orderBy = searchParams.get('orderBy') || 'pvp';  // OrdenaÃ§Ã£o padrÃ£o por P/VP
-    const order = searchParams.get('order') || 'asc';  // Ordem ascendente por padrÃ£o
+    const orderByParam = searchParams.get('orderBy') || 'pvp_asc';
+    const type = searchParams.get('type') || 'all';
+    const page = Number(searchParams.get('page')) || 1;
+    const itemsPerPage = Number(searchParams.get('itemsPerPage')) || 8;
 
     console.log('=== DEBUG FUNDS API ===');
     console.log('Search params:', {
-      page,
-      perPage,
       search,
+      orderByParam,
       type,
-      orderBy,
-      order
+      page,
+      itemsPerPage
     });
 
     // Construir o where
-    const where: Prisma.FundWhereInput = {
-      AND: [
-        // Pesquisa por nome ou ticker
-        {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { ticker: { contains: search, mode: 'insensitive' } }
-          ]
-        },
-        // Filtro por tipo (ignorar se for 'all')
-        ...(type && type !== 'all' ? [{ type }] : [])
-      ]
-    };
+    let whereClause: any = {};
 
-    console.log('Where clause:', JSON.stringify(where, null, 2));
+    // Adiciona condição de busca se houver
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { ticker: { contains: search.toUpperCase() } }
+      ];
+    }
+
+    // Adiciona filtro por tipo se não for 'all'
+    if (type !== 'all') {
+      whereClause.type = type;
+    }
+
+    console.log('Where clause:', JSON.stringify(whereClause, null, 2));
 
     // Contar total de fundos com os filtros
-    const total = await prisma.fund.count({ where });
+    const total = await prisma.fund.count({ where: whereClause });
     console.log('Total funds:', total);
 
-    // Calcular total de pÃ¡ginas
-    const totalPages = Math.ceil(total / perPage);
-    console.log('Total pages:', totalPages);
+    const orderByField = orderByParam === 'pvp_asc' ? 'pvp'
+                      : orderByParam === 'pvp_desc' ? 'pvp'
+                      : orderByParam === 'dividendYield_asc' ? 'dividendYield'
+                      : orderByParam === 'dividendYield_desc' ? 'dividendYield'
+                      : orderByParam === 'lastDividend_asc' ? 'lastDividend'
+                      : orderByParam === 'lastDividend_desc' ? 'lastDividend'
+                      : orderByParam === 'marketValue_asc' ? 'marketValue'
+                      : orderByParam === 'marketValue_desc' ? 'marketValue'
+                      : 'pvp';
 
-    // Ajustar pÃ¡gina atual se necessÃ¡rio
-    const currentPage = Math.min(Math.max(1, page), totalPages);
-    console.log('Current page:', currentPage);
+    const isAscending = orderByParam === undefined ? true : orderByParam.endsWith('_asc');
 
-    // Construir orderBy
-    let orderByClause: any;
-
-    // Determinar a ordem baseado no campo
-    const getOrder = (field: string) => {
-      switch (field) {
-        case 'pvp':
-        case 'dividendYield':
-        case 'lastDividend':
-        case 'marketValue':
-          return 'asc'; // Menor para maior para todos os campos numÃ©ricos
-        case 'name':
-        case 'ticker':
-          return 'asc'; // A-Z para campos de texto
-        default:
-          return 'asc';
-      }
-    };
-
-    // OrdenaÃ§Ã£o para todos os campos
-    orderByClause = [
-      {
-        [orderBy]: {
-          sort: getOrder(orderBy),
-          nulls: 'last',
-        }
-      },
-      // OrdenaÃ§Ã£o secundÃ¡ria sempre por ticker para manter consistÃªncia
-      { ticker: 'asc' }
-    ];
-
-    console.log('Order by:', orderByClause);
-
-    // Buscar fundos com paginaÃ§Ã£o, filtros e ordenaÃ§Ã£o
     const funds = await prisma.fund.findMany({
-      where,
-      orderBy: orderByClause,
-      skip: (currentPage - 1) * perPage,
-      take: perPage,
+      where: whereClause,
       select: {
         id: true,
         ticker: true,
@@ -107,19 +73,65 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('Found funds:', funds.length);
+    // Separa os fundos em dois grupos
+    const completeFunds = funds.filter(f => 
+      f.lastDividend !== null && 
+      f.dividendYield !== null && 
+      f.pvp !== null && 
+      f.pvp >= 0.1
+    );
+
+    const incompleteFunds = funds.filter(f => 
+      f.lastDividend === null || 
+      f.dividendYield === null || 
+      f.pvp === null || 
+      f.pvp < 0.1
+    );
+
+    // Ordena os fundos completos
+    completeFunds.sort((a, b) => {
+      // Para campos numéricos
+      const aValue = a[orderByField] || 0;
+      const bValue = b[orderByField] || 0;
+      
+      return isAscending ? 
+        aValue - bValue : 
+        bValue - aValue;
+    });
+
+    // Junta os dois grupos
+    const sortedFunds = [...completeFunds, ...incompleteFunds];
+
+    // Calcula a paginação
+    const totalItems = sortedFunds.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const safeCurrentPage = Math.min(Math.max(1, page), totalPages);
+
+    // Aplica paginação
+    const paginatedFunds = sortedFunds.slice(
+      (safeCurrentPage - 1) * itemsPerPage,
+      safeCurrentPage * itemsPerPage
+    );
+
+    console.log('Found funds:', paginatedFunds.length);
+    console.log('Total funds:', totalItems);
+    console.log('Found funds with details:', paginatedFunds.map(f => ({
+      ticker: f.ticker,
+      lastDividend: f.lastDividend,
+      dividendYield: f.dividendYield,
+      pvp: f.pvp,
+      hasAllData: f.lastDividend !== null && f.dividendYield !== null && f.pvp !== null && f.pvp >= 0.1
+    })));
 
     return NextResponse.json({
-      funds,
-      total,
-      page: currentPage,
-      perPage,
-      totalPages
+      funds: paginatedFunds,
+      totalPages,
+      currentPage: safeCurrentPage,
+      itemsPerPage,
+      totalItems
     });
   } catch (error) {
     console.error('Error fetching funds:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

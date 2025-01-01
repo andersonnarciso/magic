@@ -68,16 +68,13 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{fund.ticker}</CardTitle>
+          <h2 className="text-xl font-bold">{fund.ticker}</h2>
           <Badge 
             className={cn(getBadgeColor(fund.type))}
           >
             {fund.type || 'N/A'}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-2" title={fund.name}>
-          {fund.name}
-        </p>
       </CardHeader>
       
       <CardContent className="flex-grow flex flex-col">
@@ -127,7 +124,7 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
               <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
             ) : (
               <p className="font-medium">
-                {fund.lastDividend ? formatPercentDirect(fund.lastDividend / 100) : 'N/A'}
+                {fund.lastDividend ? formatCurrency(fund.lastDividend) : 'N/A'}
               </p>
             )}
           </div>
@@ -145,17 +142,22 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
         </div>
 
         <div className="flex items-center justify-between mt-auto pt-4 border-t">
-          <div className="flex items-center gap-4">
-            <Button onClick={onClick} variant="default" size="sm" className="bg-blue-500 hover:bg-blue-500/80 text-white">
+          <div className="grid grid-cols-2 gap-3 w-full">
+            <Button 
+              onClick={onClick} 
+              variant="default" 
+              size="sm" 
+              className="bg-blue-500 hover:bg-blue-500/80 text-white w-full"
+            >
               Magic Number
             </Button>
-            <Link href={`/fund/${fund.ticker}`} className="group">
+            <Link href={`/fund/${fund.ticker}`} className="group w-full">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-1"
+                className="text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1 w-full bg-gray-50"
               >
-                Conheça o fundo
+                Conheça
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   width="16" 

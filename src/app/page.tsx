@@ -15,7 +15,7 @@ export default function Home({ searchParams }: HomeProps) {
   const router = useRouter()
   const searchParamsObj = useSearchParams()
 
-  const [itemsPerPage, setItemsPerPage] = useState('24')
+  const [itemsPerPage, setItemsPerPage] = useState('8')
   const [sortBy, setSortBy] = useState(searchParamsObj?.get('orderBy') || '')
   const [filterType, setFilterType] = useState(searchParamsObj?.get('type') || 'all')
   const [filterDividend, setFilterDividend] = useState(searchParamsObj?.get('dividend') || '')
@@ -47,9 +47,9 @@ export default function Home({ searchParams }: HomeProps) {
   }
 
   return (
-    <div className="w-full px-6 space-y-8 max-w-[1600px] mx-auto">
+    <div className="w-full px-6 max-w-[1600px] mx-auto">
       {/* Hero Section */}
-      <section className="pt-12 text-center space-y-4">
+      <section className="pt-4 text-center space-y-4">
         <h1 className="text-4xl font-bold">Invest Tools</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto inherit">
           Analise e compare Ações, Fundos Imobiliários, Índices e BDRs de forma simples e rápida
@@ -97,12 +97,14 @@ export default function Home({ searchParams }: HomeProps) {
                       onChange={(e) => handleParamChange('orderBy', e.target.value)}
                     >
                       <option value="">Selecione uma ordenação</option>
-                      <option value="pvp">P/VP - Menor para Maior</option>
-                      <option value="dividendYield">Dividend Yield - Menor para Maior</option>
-                      <option value="lastDividend">Último Rendimento - Menor para Maior</option>
-                      <option value="marketValue">Valor de Mercado - Menor para Maior</option>
-                      <option value="ticker">Código - A-Z</option>
-                      <option value="name">Nome - A-Z</option>
+                      <option value="pvp_asc">P/VP - Menor</option>
+                      <option value="pvp_desc">P/VP - Maior</option>
+                      <option value="dividendYield_asc">Dividend Yield - Menor</option>
+                      <option value="dividendYield_desc">Dividend Yield - Maior</option>
+                      <option value="lastDividend_asc">Último Rendimento - Menor</option>
+                      <option value="lastDividend_desc">Último Rendimento - Maior</option>
+                      <option value="marketValue_asc">Valor de Mercado - Menor</option>
+                      <option value="marketValue_desc">Valor de Mercado - Maior</option>
                     </select>
                   </div>
 
@@ -117,6 +119,7 @@ export default function Home({ searchParams }: HomeProps) {
                       <option value="Tijolo">Tijolo</option>
                       <option value="Papel">Papel</option>
                       <option value="FOF">FOF</option>
+                      <option value="Híbrido">Híbrido</option>
                       <option value="Energia">Energia</option>
                       <option value="Agro">Agro</option>
                     </select>
@@ -142,7 +145,7 @@ export default function Home({ searchParams }: HomeProps) {
               </div>
               <FundList
                 page={page}
-                perPage={Number(itemsPerPage)}
+                itemsPerPage={Number(itemsPerPage)}
                 search={search}
                 orderBy={sortBy}
                 type={filterType}
@@ -155,5 +158,3 @@ export default function Home({ searchParams }: HomeProps) {
     </div>
   )
 }
-
-
