@@ -138,7 +138,7 @@ export default async function FundPage({ params }: { params: { ticker: string } 
               <Card className="transition-all hover:shadow-lg border-l-4 border-l-orange-500 bg-orange-50/50 hover:bg-orange-50">
                 <CardHeader className="flex flex-row items-center gap-2">
                   <Calendar className="h-5 w-5 text-orange-600" />
-                  <CardTitle className="text-base">Último Dividendo</CardTitle>
+                  <CardTitle className="text-base">Último Pagamento</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-orange-700">{formatCurrency(fund.lastDividend || 0)}</p>

@@ -119,7 +119,7 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Último Rendimento</p>
+            <p className="text-sm text-muted-foreground">Último Pagamento</p>
             {isUpdating ? (
               <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
             ) : (

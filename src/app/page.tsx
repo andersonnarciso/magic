@@ -52,7 +52,7 @@ export default function Home({ searchParams }: HomeProps) {
       <section className="pt-4 text-center space-y-4">
         <h1 className="text-4xl font-bold">Invest Tools</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto inherit">
-          Analise e compare Ações, Fundos Imobiliários, Índices e BDRs de forma simples e rápida
+          Analise Fundos Imobiliários de forma simples e rápida
         </p>
       </section>
 
@@ -101,8 +101,8 @@ export default function Home({ searchParams }: HomeProps) {
                       <option value="pvp_desc">P/VP - Maior</option>
                       <option value="dividendYield_asc">Dividend Yield - Menor</option>
                       <option value="dividendYield_desc">Dividend Yield - Maior</option>
-                      <option value="lastDividend_asc">Último Rendimento - Menor</option>
-                      <option value="lastDividend_desc">Último Rendimento - Maior</option>
+                      <option value="lastDividend_asc">Último Pagamento - Menor</option>
+                      <option value="lastDividend_desc">Último Pagamento - Maior</option>
                       <option value="marketValue_asc">Valor de Mercado - Menor</option>
                       <option value="marketValue_desc">Valor de Mercado - Maior</option>
                     </select>
