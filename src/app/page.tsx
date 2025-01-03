@@ -17,7 +17,7 @@ export default function Home({ searchParams }: HomeProps) {
 
   const [itemsPerPage, setItemsPerPage] = useState('8')
   const [sortBy, setSortBy] = useState(searchParamsObj?.get('orderBy') || '')
-  const [filterType, setFilterType] = useState(searchParamsObj?.get('type') || 'all')
+  const [filterSector, setFilterSector] = useState(searchParamsObj?.get('sector') || 'all')
   const [filterDividend, setFilterDividend] = useState(searchParamsObj?.get('dividend') || '')
   const [search, setSearch] = useState(searchParamsObj?.get('search') || '')
 
@@ -34,8 +34,8 @@ export default function Home({ searchParams }: HomeProps) {
       case 'orderBy':
         setSortBy(value)
         break
-      case 'type':
-        setFilterType(value)
+      case 'sector':
+        setFilterSector(value)
         break
       case 'dividend':
         setFilterDividend(value)
@@ -109,19 +109,25 @@ export default function Home({ searchParams }: HomeProps) {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-muted-foreground">Tipo de Fundo</label>
+                    <label className="text-sm text-muted-foreground">Setor</label>
                     <select 
                       className="input max-w-xs"
-                      value={filterType}
-                      onChange={(e) => handleParamChange('type', e.target.value)}
+                      value={filterSector}
+                      onChange={(e) => handleParamChange('sector', e.target.value)}
                     >
-                      <option value="all">Todos os tipos</option>
-                      <option value="Tijolo">Tijolo</option>
+                      <option value="all">Todos os setores</option>
+                      <option value="Logística">Logística</option>
+                      <option value="Hotel">Hotel</option>
+                      <option value="Hospitalar">Hospitalar</option>
                       <option value="Papel">Papel</option>
-                      <option value="FOF">FOF</option>
                       <option value="Híbrido">Híbrido</option>
-                      <option value="Energia">Energia</option>
-                      <option value="Agro">Agro</option>
+                      <option value="Shopping">Shopping</option>
+                      <option value="FiAgro">FiAgro</option>
+                      <option value="Educacional">Educacional</option>
+                      <option value="Lajes Corporativas">Lajes Corporativas</option>
+                      <option value="FOF">Fundo de Fundos</option>
+                      <option value="Misto">Misto</option>
+                      <option value="Outros">Outros</option>
                     </select>
                   </div>
 
@@ -148,7 +154,7 @@ export default function Home({ searchParams }: HomeProps) {
                 itemsPerPage={Number(itemsPerPage)}
                 search={search}
                 orderBy={sortBy}
-                type={filterType}
+                sector={filterSector}
                 dividend={filterDividend}
               />
             </div>
