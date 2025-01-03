@@ -19,8 +19,8 @@ export async function GET() {
     console.log('Taxes data:', JSON.stringify(taxesData, null, 2));
     
     // A API retorna os valores como strings, precisamos converter para número
-    const cdi = parseFloat(taxesData.results?.CDI || '0');
-    const selic = parseFloat(taxesData.results?.SELIC || '0');
+    const cdi = parseFloat(taxesData.results?.[0]?.cdi || '0');
+    const selic = parseFloat(taxesData.results?.[0]?.selic || '0');
 
     // Busca cotação do dólar
     const quotesResponse = await fetch(

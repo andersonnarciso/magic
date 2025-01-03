@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
+import ReferenceRates from './ReferenceRates';
 
 interface Indicator {
   name: string;
@@ -9,9 +10,7 @@ interface Indicator {
 }
 
 interface Indicators {
-  selic: Indicator;
   ipca: Indicator;
-  cdi: Indicator;
   igpm: Indicator;
   usd: Indicator;
 }
@@ -41,7 +40,7 @@ export function HeaderIndicators() {
 
         const data = await response.json();
         
-        if (!data.selic || !data.cdi || !data.ipca || !data.igpm || !data.usd) {
+        if (!data.ipca || !data.igpm || !data.usd) {
           throw new Error('Invalid data format');
         }
 
@@ -76,14 +75,7 @@ export function HeaderIndicators() {
 
   return (
     <div className="hidden md:flex gap-8">
-      <div className="text-center">
-        <div className="text-sm text-gray-600">SELIC</div>
-        <div className="font-semibold">{indicators.selic.value.toFixed(2)}%</div>
-      </div>
-      <div className="text-center">
-        <div className="text-sm text-gray-600">CDI</div>
-        <div className="font-semibold">{indicators.cdi.value.toFixed(2)}%</div>
-      </div>
+      <ReferenceRates />
       <div className="text-center">
         <div className="text-sm text-gray-600">IPCA</div>
         <div className="font-semibold">{indicators.ipca.value.toFixed(2)}%</div>

@@ -32,3 +32,11 @@ model Fund {
 
   @@index([ticker])
 }
+
+model ReferenceRate {
+  id        String   @id @default(cuid())
+  name      String   @unique // "SELIC" ou "CDI"
+  value     Float
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}

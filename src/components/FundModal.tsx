@@ -146,7 +146,7 @@ export default function FundModal({ fund, onClose }: FundModalProps) {
                 <div className="bg-gray-50 p-3 rounded-lg text-center">
                   <p className="text-sm text-gray-500">Rendimento Mensal</p>
                   <p className={`text-lg font-bold ${!fund.dividendYield || fund.dividendYield === 0 ? 'text-gray-400' : 'text-green-600'}`}>
-                    {fund.dividendYield ? `${((fund.dividendYield / 12) * 100).toFixed(2)}%` : '-'}
+                    {fund.dividendYield ? `${(fund.dividendYield / 12).toFixed(2)}%` : '-'}
                   </p>
                 </div>
               </div>
