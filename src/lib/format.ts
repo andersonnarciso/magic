@@ -20,3 +20,25 @@ export function formatPercentDirect(value: number): string {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+export function formatCurrencyCompact(value: number): string {
+  if (value >= 1_000_000_000) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      notation: 'compact',
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+  
+  if (value >= 1_000_000) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      notation: 'compact',
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
+  return formatCurrency(value);
+}

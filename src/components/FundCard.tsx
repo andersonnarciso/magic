@@ -21,16 +21,24 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
     switch (type?.trim()) {
       case 'Energia':
         return 'border-transparent bg-yellow-500 text-white hover:bg-yellow-500/80'
-      case 'Agro':
+      case 'FiAgro':
         return 'border-transparent bg-green-600 text-white hover:bg-green-600/80'
       case 'Híbrido':
         return 'border-transparent bg-lime-500 text-white hover:bg-lime-500/80'
-      case 'Tijolo':
+      case 'Logística':
         return 'border-transparent bg-orange-500 text-white hover:bg-orange-500/80'
+      case 'Shopping':
+        return 'border-transparent bg-pink-500 text-white hover:bg-pink-500/80'
+      case 'Lajes Corporativas':
+        return 'border-transparent bg-cyan-500 text-white hover:bg-cyan-500/80'
       case 'Papel':
         return 'border-transparent bg-blue-500 text-white hover:bg-blue-500/80'
       case 'FOF':
         return 'border-transparent bg-purple-500 text-white hover:bg-purple-500/80'
+      case 'Hospitalar':
+        return 'border-transparent bg-red-500 text-white hover:bg-red-500/80'
+      case 'Educacional':
+        return 'border-transparent bg-indigo-500 text-white hover:bg-indigo-500/80'
       default:
         return 'border-transparent bg-gray-500 text-white hover:bg-gray-500/80'
     }
@@ -60,6 +68,20 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
     if (pvp < 1) return 'text-green-500 hover:text-green-600';
     if (pvp === 1) return 'text-blue-500 hover:text-blue-600';
     return 'text-yellow-500 hover:text-yellow-600';
+  };
+
+  const formatAbbreviatedValue = (value: number | null) => {
+    if (!value) return 'N/A';
+    if (value >= 1e9) {
+      return `${(value / 1e9).toFixed(1)}B`;
+    }
+    if (value >= 1e6) {
+      return `${(value / 1e6).toFixed(1)}M`;
+    }
+    if (value >= 1e3) {
+      return `${(value / 1e3).toFixed(1)}K`;
+    }
+    return value.toString();
   };
 
   return (
@@ -136,6 +158,28 @@ export default function FundCard({ fund, onClick, isUpdating }: FundCardProps) {
             ) : (
               <p className="font-medium">
                 {fund.dividendYield ? formatPercentDirect(fund.dividendYield / 100) : 'N/A'}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground">Valor de Mercado</p>
+            {isUpdating ? (
+              <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
+            ) : (
+              <p className="font-medium">
+                {formatAbbreviatedValue(fund.marketValue)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground">Patrimônio</p>
+            {isUpdating ? (
+              <div className="h-6 w-20 animate-pulse bg-gray-200 rounded" />
+            ) : (
+              <p className="font-medium">
+                {formatAbbreviatedValue(fund.netWorth)}
               </p>
             )}
           </div>

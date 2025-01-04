@@ -1,0 +1,38 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app/dashboard
+
+# Copiar os arquivos do projeto atual
+COPY dashboard/package*.json ./
+COPY dashboard/src ./src
+COPY dashboard/tsconfig.json ./
+COPY dashboard/tsconfig.node.json ./
+COPY dashboard/tailwind.config.ts ./
+COPY dashboard/postcss.config.cjs ./
+COPY dashboard/index.html ./
+COPY dashboard/vite.config.ts ./
+
+# Instalar dependências
+RUN npm install
+
+# Build
+RUN npm run build
+
+# Stage de produção
+FROM nginx:alpine
+
+# Copiar a build do Vite
+COPY --from=builder /app/dashboard/dist /usr/share/nginx/html
+
+# Configurar nginx
+RUN echo 'server { \
+    listen 3001; \
+    location / { \
+        root /usr/share/nginx/html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 3001
+
+CMD ["nginx", "-g", "daemon off;"]

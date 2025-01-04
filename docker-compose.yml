@@ -11,13 +11,47 @@ services:
       - /app/.next
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/efeito-bola-de-neve?schema=public
-      - HG_TOKEN=a82d8319
+      - HG_TOKEN=${HG_TOKEN}
       - HOSTNAME=0.0.0.0
       - NEXT_TELEMETRY_DISABLED=1
       - NODE_ENV=development
     depends_on:
       db:
         condition: service_healthy
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/efeito-bola-de-neve?schema=public
+      - JWT_SECRET=your-jwt-secret
+      - NODE_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "3002:3001"
+    volumes:
+      - ./dashboard:/app/dashboard
+      - /app/dashboard/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_AUTH_URL=http://localhost:3001
+      - NODE_ENV=development
+    depends_on:
+      - app
+      - auth
 
   db:
     image: postgres:15

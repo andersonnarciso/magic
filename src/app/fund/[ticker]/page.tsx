@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent } from '../../../lib/format';
+import { formatCurrency, formatPercent, formatCurrencyCompact } from '../../../lib/format';
 import { 
   Building2, 
   TrendingUp, 
@@ -101,7 +101,7 @@ export default async function FundPage({ params }: { params: { ticker: string } 
                   <CardTitle className="text-base">Valor de Mercado</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(fund.marketValue || 0)}</p>
+                  <p className="text-2xl font-bold text-green-700">{formatCurrencyCompact(fund.marketValue || 0)}</p>
                 </CardContent>
               </Card>
 
@@ -121,7 +121,7 @@ export default async function FundPage({ params }: { params: { ticker: string } 
                   <CardTitle className="text-base">Patrimônio Líquido</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-purple-700">{formatCurrency(fund.netWorth || 0)}</p>
+                  <p className="text-2xl font-bold text-purple-700">{formatCurrencyCompact(fund.netWorth || 0)}</p>
                 </CardContent>
               </Card>
 

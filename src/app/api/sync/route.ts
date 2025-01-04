@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getHGToken } from '@/lib/config'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -68,146 +69,223 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Função para mapear o setor para o tipo de fundo
-function mapSectorToType(sector: string): string {
+// Função para padronizar e abreviar o setor
+function standardizeSector(sector: string | null): string | null {
+  if (!sector) return null;
+
+  // Remover espaços extras e converter para minúsculo
+  const cleanSector = sector.trim().toLowerCase();
+
+  // Mapeamento de setores com abreviações
   const sectorMap: { [key: string]: string } = {
-    'Shoppings': 'Tijolo',
-    'Shopping': 'Tijolo',
-    'Lajes Corporativas': 'Tijolo',
-    'Logística': 'Tijolo',
-    'Imóveis Industriais e Logísticos': 'Tijolo',
-    'Títulos e Val. Mob.': 'Papel',
-    'Títulos e Valores Mobiliários': 'Papel',
-    'Papéis': 'Papel',
-    'Fundos de Fundos': 'FOF',
-    'Fundo de Fundos': 'FOF',
-    'FOF': 'FOF',
-    'Agronegócio': 'Agro',
-    'Agências de Bancos': 'Tijolo',
-    'Varejo': 'Tijolo',
-    'Educacional': 'Tijolo',
-    'Energia': 'Energia',
-    'Híbrido': 'Híbrido',
-    'Misto': 'Híbrido',
-    'Indefinido': 'FOF',
-    'Financeiro e Outros/Fundos/Fundos Imobiliários': 'FOF'
+    // Hospitalares
+    'hospitalar': 'Hospitalar',
+    'hospital': 'Hospitalar',
+    'saude': 'Hospitalar',
+    'saúde': 'Hospitalar',
+    'healthcare': 'Hospitalar',
+    'hospitalar / laboratórios / diagnósticos': 'Hospitalar',
+    
+    // Shoppings
+    'shopping': 'Shopping',
+    'shoppings': 'Shopping',
+    'shopping center': 'Shopping',
+    
+    // Logística
+    'logistica': 'Logística',
+    'logística': 'Logística',
+    'galpões logísticos': 'Logística',
+    'galpoes': 'Logística',
+    'imóveis industriais e logísticos': 'Logística',
+    
+    // Lajes Corporativas
+    'lajes': 'Lajes Corp.',
+    'lajes corporativas': 'Lajes Corp.',
+    'escritórios': 'Lajes Corp.',
+    'escritorios': 'Lajes Corp.',
+    
+    // Títulos
+    'títulos e valores mobiliários': 'Recebíveis',
+    'títulos e val. mob.': 'Recebíveis',
+    'papel': 'Recebíveis',
+    'papéis': 'Recebíveis',
+    'recebíveis': 'Recebíveis',
+    'recebiveis': 'Recebíveis',
+    
+    // Fundos de Fundos
+    'fof': 'FOF',
+    'fundo de fundos': 'FOF',
+    'fundos de fundos': 'FOF',
+    
+    // Agronegócio
+    'agronegócio': 'Agro',
+    'agronegocio': 'Agro',
+    'agro': 'Agro',
+    'fiagro': 'Agro',
+    
+    // Outros setores comuns
+    'varejo': 'Varejo',
+    'educacional': 'Educacional',
+    'residencial': 'Residencial',
+    'híbrido': 'Híbrido',
+    'hibrido': 'Híbrido',
+    'misto': 'Híbrido',
+    'desenvolvimento': 'Desenvolv.',
+    'indefinido': 'Outros',
+    'outros': 'Outros'
   };
 
-  return sectorMap[sector] || 'FOF';
+  // Procurar match exato
+  if (sectorMap[cleanSector]) {
+    return sectorMap[cleanSector];
+  }
+
+  // Procurar match parcial
+  for (const [key, value] of Object.entries(sectorMap)) {
+    if (cleanSector.includes(key)) {
+      return value;
+    }
+  }
+
+  // Se não encontrou nenhum match, retorna uma versão abreviada do setor original
+  if (sector.length > 15) {
+    return sector.split(' ').map(word => word.substring(0, 3)).join('. ') + '.';
+  }
+
+  return sector;
+}
+
+// Função para mapear o setor para o tipo
+function mapSectorToType(sector: string | null): string {
+  if (!sector) return 'Outros';
+
+  const cleanSector = sector.toLowerCase();
+  
+  // Mapeamento de tipos
+  const typeMap: { [key: string]: string } = {
+    'hospitalar': 'Hospitalar',
+    'shopping': 'Tijolo',
+    'logística': 'Tijolo',
+    'lajes corp.': 'Tijolo',
+    'recebíveis': 'Papel',
+    'fof': 'FOF',
+    'agro': 'Agro',
+    'varejo': 'Tijolo',
+    'educacional': 'Tijolo',
+    'residencial': 'Tijolo',
+    'híbrido': 'Híbrido',
+    'desenvolv.': 'Tijolo'
+  };
+
+  // Procurar match exato
+  if (typeMap[cleanSector]) {
+    return typeMap[cleanSector];
+  }
+
+  // Procurar por palavras-chave
+  if (cleanSector.includes('hospital') || cleanSector.includes('saude') || cleanSector.includes('saúde')) return 'Hospitalar';
+  if (cleanSector.includes('shopping') || cleanSector.includes('loja')) return 'Tijolo';
+  if (cleanSector.includes('logistic') || cleanSector.includes('galpão') || cleanSector.includes('galpao')) return 'Tijolo';
+  if (cleanSector.includes('titulo') || cleanSector.includes('título') || cleanSector.includes('papel')) return 'Papel';
+  if (cleanSector.includes('fundo')) return 'FOF';
+  if (cleanSector.includes('agro')) return 'Agro';
+  if (cleanSector.includes('hibrido') || cleanSector.includes('híbrido') || cleanSector.includes('misto')) return 'Híbrido';
+  if (cleanSector.includes('imovel') || cleanSector.includes('imóvel') || cleanSector.includes('predio') || cleanSector.includes('prédio')) return 'Tijolo';
+
+  return 'Outros';
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const HG_TOKEN = process.env.HG_TOKEN;
-    console.log('Starting sync with token:', HG_TOKEN);
+    // Obter o token da função utilitária
+    const HG_TOKEN = getHGToken();
+    if (!HG_TOKEN) {
+      console.error('HG_TOKEN não encontrado');
+      return NextResponse.json({ error: 'Token de API não configurado' }, { status: 500 });
+    }
 
-    const fiiChunks = chunkArray(FIIS, 1);
-    console.log('FII chunks:', fiiChunks);
+    console.log('=== INICIANDO SINCRONIZAÇÃO ===');
+    console.log('Token configurado:', HG_TOKEN ? 'Sim' : 'Não');
 
-    const allFiiDetails: FundDetails[] = [];
+    const response = await fetch(`https://api.hgbrasil.com/finance/stock_price?key=${HG_TOKEN}`);
+    const data = await response.json();
 
-    for (const chunk of fiiChunks) {
+    console.log('=== RESPOSTA DA API ===');
+    console.log('Status:', response.status);
+    console.log('Dados:', JSON.stringify(data, null, 2));
+
+    if (!data.results) {
+      console.error('Erro na resposta da API:', data);
+      return NextResponse.json({ error: 'Erro na resposta da API' }, { status: 500 });
+    }
+
+    const fiiCount = Object.keys(data.results).filter(ticker => ticker.endsWith('11')).length;
+    console.log('Total de FIIs encontrados:', fiiCount);
+
+    // Buscar fundos existentes
+    const existingFunds = await prisma.fund.findMany();
+    const existingFundsMap = new Map(existingFunds.map(fund => [fund.ticker, fund]));
+
+    // Array para armazenar fundos atualizados
+    const updatedFunds = [];
+
+    // Processar cada fundo
+    for (const [ticker, fundData] of Object.entries(data.results)) {
       try {
-        const symbols = chunk.join(',');
-        const url = `https://api.hgbrasil.com/finance/stock_price?key=${HG_TOKEN}&symbol=${symbols}`;
-        console.log('Fetching URL:', url);
-        
-        const response = await fetch(url, { 
-          cache: 'no-store',
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
+        // Ignorar se não for FII
+        if (!ticker.endsWith('11')) {
+          continue;
+        }
 
-        if (!response.ok) {
-          console.error('API response not ok:', {
-            status: response.status,
-            statusText: response.statusText
+        const existingFund = existingFundsMap.get(ticker);
+        
+        // Padronizar o setor
+        const standardizedSector = standardizeSector(fundData.sector);
+        const mappedType = mapSectorToType(standardizedSector);
+
+        console.log(`\nProcessando ${ticker}:`);
+        console.log('Setor original:', fundData.sector);
+        console.log('Setor padronizado:', standardizedSector);
+        console.log('Tipo mapeado:', mappedType);
+
+        // Extrair novos valores
+        const newValues = {
+          currentPrice: fundData.price || null,
+          dividendYield: fundData.dividend_yield || null,
+          name: fundData.name || ticker,
+          sector: standardizedSector,
+          type: mappedType,
+          marketValue: fundData.market_cap || null,
+          lastDividend: fundData.last_dividend?.value || null,
+          pvp: fundData.price_earnings || null,
+          updatedAt: new Date()
+        };
+
+        // Verificar se algo mudou
+        const hasChanges = !existingFund || Object.keys(newValues).some(
+          key => newValues[key] !== existingFund[key]
+        );
+
+        if (hasChanges) {
+          const result = await prisma.fund.upsert({
+            where: { ticker },
+            update: newValues,
+            create: { ticker, ...newValues },
           });
-          throw new Error(`HTTP error! status: ${response.status}`);
+          updatedFunds.push(ticker);
         }
-
-        const data = await response.json();
-        console.log('API Response:', JSON.stringify(data, null, 2));
-        
-        for (const ticker of chunk) {
-          try {
-            // A resposta da API agora vem direto em results[ticker]
-            const fundData = data.results?.[ticker];
-            if (!fundData) {
-              console.error(`No data found for ticker ${ticker}`);
-              continue;
-            }
-
-            // Extrai e converte os valores da API
-            const currentPrice = fundData.price ? parseFloat(fundData.price) : null;
-            const pvp = fundData.financials?.price_to_book_ratio ? parseFloat(fundData.financials.price_to_book_ratio) : null;
-            const dividendYield = fundData.financials?.dividends?.yield_12m ? parseFloat(fundData.financials.dividends.yield_12m) : null;
-
-            // Calcula o último dividendo usando o dividend yield anual e o preço atual
-            const lastDividend = (currentPrice && dividendYield) 
-              ? Number((dividendYield * currentPrice / 1200).toFixed(2)) // Divide por 1200 (12 meses * 100 para converter percentual)
-              : null;
-
-            console.log(`Processing ${ticker} with values:`, {
-              currentPrice,
-              dividendYield,
-              lastDividend,
-              rawData: {
-                price: fundData.price,
-                yield_12m: fundData.financials?.dividends?.yield_12m
-              }
-            });
-
-            // Salva no banco
-            const result = await prisma.fund.upsert({
-              where: { ticker },
-              update: {
-                name: fundData.name || ticker,
-                currentPrice,
-                marketValue: currentPrice,
-                pvp,
-                lastDividend,
-                dividendYield,
-                type: mapSectorToType(fundData.sector || 'FOF')
-              },
-              create: {
-                ticker,
-                name: fundData.name || ticker,
-                currentPrice,
-                marketValue: currentPrice,
-                pvp,
-                lastDividend,
-                dividendYield,
-                type: mapSectorToType(fundData.sector || 'FOF')
-              }
-            });
-
-            console.log(`Saved ${ticker} with result:`, {
-              lastDividend: result.lastDividend,
-              dividendYield: result.dividendYield
-            });
-
-            console.log(`Saved ${ticker}:`, result);
-            allFiiDetails.push(result);
-          } catch (error) {
-            console.error(`Error processing ${ticker}:`, error);
-          }
-        }
-
-        // Aguarda 1 segundo entre as chamadas
-        await sleep(1000);
       } catch (error) {
-        console.error(`Error fetching chunk ${chunk.join(',')}:`, error);
+        console.error(`Erro ao processar ${ticker}:`, error);
       }
     }
 
     return NextResponse.json({
-      message: `Database synchronized with ${allFiiDetails.length} FIIs`,
-      fiis: allFiiDetails
+      message: `Sync complete: ${updatedFunds.length} of ${fiiCount} FIIs updated`,
+      updated: updatedFunds
     });
+
   } catch (error) {
-    console.error('Error synchronizing database:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Sync error:', error);
+    return NextResponse.json({ error: 'Failed to sync' }, { status: 500 });
   }
 }

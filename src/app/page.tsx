@@ -5,6 +5,9 @@ import FundList from '@/components/FundList'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Loading from './loading'
+import { SectorFilter } from '@/components/SectorFilter';
+import { CompletenessFilter } from '@/components/CompletenessFilter';
+import { RatesDisplay } from '@/components/RatesDisplay';
 
 interface HomeProps {
   searchParams?: { [key: string]: string | string[] | undefined }
@@ -20,6 +23,7 @@ export default function Home({ searchParams }: HomeProps) {
   const [filterSector, setFilterSector] = useState(searchParamsObj?.get('sector') || 'all')
   const [filterDividend, setFilterDividend] = useState(searchParamsObj?.get('dividend') || '')
   const [search, setSearch] = useState(searchParamsObj?.get('search') || '')
+  const [completeness, setCompleteness] = useState(searchParamsObj?.get('completeness') || '')
 
   const handleParamChange = (param: string, value: string) => {
     const params = new URLSearchParams(searchParamsObj?.toString())
@@ -43,6 +47,9 @@ export default function Home({ searchParams }: HomeProps) {
       case 'search':
         setSearch(value)
         break
+      case 'completeness':
+        setCompleteness(value)
+        break
     }
   }
 
@@ -54,6 +61,7 @@ export default function Home({ searchParams }: HomeProps) {
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto inherit">
           Analise Fundos Imobiliários de forma simples e rápida
         </p>
+        <RatesDisplay />
       </section>
 
       {/* Main Content */}
@@ -97,14 +105,14 @@ export default function Home({ searchParams }: HomeProps) {
                       onChange={(e) => handleParamChange('orderBy', e.target.value)}
                     >
                       <option value="">Selecione uma ordenação</option>
-                      <option value="pvp_asc">P/VP - Menor</option>
-                      <option value="pvp_desc">P/VP - Maior</option>
-                      <option value="dividendYield_asc">Dividend Yield - Menor</option>
-                      <option value="dividendYield_desc">Dividend Yield - Maior</option>
-                      <option value="lastDividend_asc">Último Pagamento - Menor</option>
-                      <option value="lastDividend_desc">Último Pagamento - Maior</option>
-                      <option value="marketValue_asc">Valor de Mercado - Menor</option>
-                      <option value="marketValue_desc">Valor de Mercado - Maior</option>
+                      <option value="pvp:asc">P/VP - Menor</option>
+                      <option value="pvp:desc">P/VP - Maior</option>
+                      <option value="dividendYield:asc">Dividend Yield - Menor</option>
+                      <option value="dividendYield:desc">Dividend Yield - Maior</option>
+                      <option value="lastDividend:asc">Último Pagamento - Menor</option>
+                      <option value="lastDividend:desc">Último Pagamento - Maior</option>
+                      <option value="marketValue:asc">Valor de Mercado - Menor</option>
+                      <option value="marketValue:desc">Valor de Mercado - Maior</option>
                     </select>
                   </div>
 
@@ -117,7 +125,6 @@ export default function Home({ searchParams }: HomeProps) {
                     >
                       <option value="all">Todos os setores</option>
                       <option value="Logística">Logística</option>
-                      <option value="Hotel">Hotel</option>
                       <option value="Hospitalar">Hospitalar</option>
                       <option value="Papel">Papel</option>
                       <option value="Híbrido">Híbrido</option>
@@ -126,8 +133,21 @@ export default function Home({ searchParams }: HomeProps) {
                       <option value="Educacional">Educacional</option>
                       <option value="Lajes Corporativas">Lajes Corporativas</option>
                       <option value="FOF">Fundo de Fundos</option>
-                      <option value="Misto">Misto</option>
                       <option value="Outros">Outros</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-muted-foreground">Qualidade dos Dados</label>
+                    <select 
+                      className="input max-w-xs"
+                      value={completeness}
+                      onChange={(e) => handleParamChange('completeness', e.target.value)}
+                    >
+                      <option value="all">Todos os fundos</option>
+                      <option value="complete">Dados completos</option>
+                      <option value="partial">Dados parciais</option>
+                      <option value="incomplete">Dados básicos</option>
                     </select>
                   </div>
 
@@ -156,6 +176,7 @@ export default function Home({ searchParams }: HomeProps) {
                 orderBy={sortBy}
                 sector={filterSector}
                 dividend={filterDividend}
+                completeness={completeness}
               />
             </div>
           </Suspense>

@@ -22,6 +22,29 @@ Este projeto é um simulador que calcula o "Magic Number" para fundos imobiliár
    ```
 4. Acesse http://localhost:3000
 
+## Configuração
+
+1. Clone o repositório
+2. Instale as dependências:
+```bash
+npm install
+```
+3. Copie o arquivo `.env.example` para `.env`:
+```bash
+cp .env.example .env
+```
+4. Configure suas variáveis de ambiente no arquivo `.env`:
+   - `HG_TOKEN`: Seu token da API HG Brasil (obtenha em https://hgbrasil.com/status/finance)
+   - `DATABASE_URL`: URL de conexão com o banco de dados
+
+5. Execute as migrações do banco:
+```bash
+npx prisma migrate dev
+```
+6. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+```
 ## Funcionalidades
 
 - Lista de Fundos Imobiliários

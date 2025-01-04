@@ -9,15 +9,24 @@ import Pagination from './Pagination'
 import Link from 'next/link'
 
 interface FundListProps {
-  page: number
-  itemsPerPage: number
-  search: string
-  orderBy: string
-  type: string
-  dividend: string
+  page?: number
+  itemsPerPage?: number
+  search?: string
+  orderBy?: string
+  sector?: string
+  dividend?: string
+  completeness?: string
 }
 
-export default function FundList({ page, itemsPerPage, search, orderBy, type, dividend }: FundListProps) {
+export default function FundList({ 
+  page = 1, 
+  itemsPerPage = 8, 
+  search = '', 
+  orderBy = '', 
+  sector = 'all',
+  dividend = '',
+  completeness = 'all'
+}: FundListProps) {
   const [funds, setFunds] = useState<Fund[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalFunds, setTotalFunds] = useState(0)
@@ -39,8 +48,9 @@ export default function FundList({ page, itemsPerPage, search, orderBy, type, di
         params.set('itemsPerPage', String(itemsPerPage))
         params.set('search', search)
         params.set('orderBy', orderBy)
-        params.set('type', type)
+        params.set('sector', sector)
         params.set('dividend', dividend)
+        params.set('completeness', completeness)
 
         console.log('API URL:', `/api/funds?${params.toString()}`)
 
@@ -58,7 +68,7 @@ export default function FundList({ page, itemsPerPage, search, orderBy, type, di
           throw new Error(data.error || 'Failed to fetch funds')
         }
         
-        setFunds(data.funds || [])
+        setFunds(data.items || [])
         setTotalPages(data.totalPages || 1)
         setTotalFunds(data.totalItems || 0)
       } catch (error) {
@@ -70,7 +80,7 @@ export default function FundList({ page, itemsPerPage, search, orderBy, type, di
     }
 
     fetchFunds()
-  }, [page, itemsPerPage, search, orderBy, type, dividend])
+  }, [page, itemsPerPage, search, orderBy, sector, dividend, completeness])
 
   const handleFundClick = (fund: Fund) => {
     setSelectedFund(fund)
